@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './UserManagement.css';
 
 const UserManagement = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -167,27 +166,41 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="user-management">
-      <div className="user-management-header">
-        <h2>👥 User Management</h2>
-        <p>Manage employees and system users</p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+          👥 User Management
+        </h2>
+        <p className="text-gray-600">Manage employees and system users</p>
       </div>
 
-      <div className="user-management-tabs">
+      <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200">
         <button 
-          className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'users' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('users')}
         >
           👤 Users
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'roles' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'roles' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('roles')}
         >
           🔐 Roles & Permissions
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'activity' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'activity' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('activity')}
         >
           📊 Activity Log
@@ -195,58 +208,78 @@ const UserManagement = () => {
       </div>
 
       {activeTab === 'users' && (
-        <div className="users-section">
-          <div className="section-header">
-            <h3>System Users</h3>
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-gray-900">System Users</h3>
             <button 
-              className="add-user-btn"
+              className="btn btn-primary"
               onClick={() => setShowAddUser(true)}
             >
               ➕ Add New User
             </button>
           </div>
 
-          <div className="users-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {users.map(user => (
-              <div key={user.id} className={`user-card ${user.status}`}>
-                <div className="user-info">
-                  <div className="user-avatar">
+              <div key={user.id} className={`card ${user.status === 'inactive' ? 'bg-gray-100 border-gray-300' : ''}`}>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary-600 text-white flex items-center justify-center font-bold text-lg">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="user-details">
-                    <h4>{user.name}</h4>
-                    <p className="username">@{user.username}</p>
-                    <p className="email">{user.email}</p>
-                    <p className="phone">{user.phone}</p>
-                    <div className="role-badge">
-                      <span className={`role role-${user.role}`}>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900">{user.name}</h4>
+                    <p className="text-sm text-gray-600">@{user.username}</p>
+                    <p className="text-sm text-gray-600">{user.email}</p>
+                    <p className="text-sm text-gray-600">{user.phone}</p>
+                    <div className="mt-2">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                        user.role === 'manager' ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="user-actions">
-                  <button 
-                    className="edit-btn"
-                    onClick={() => handleEditUser(user)}
-                  >
-                    ✏️
-                  </button>
-                  <button 
-                    className={`status-btn ${user.status}`}
-                    onClick={() => handleToggleStatus(user.id)}
-                  >
-                    {user.status === 'active' ? '🟢' : '🔴'}
-                  </button>
-                  {user.role !== 'admin' && (
+                <div className="flex justify-between items-center">
+                  <div className="flex gap-2">
                     <button 
-                      className="delete-btn"
-                      onClick={() => handleDeleteUser(user.id)}
+                      className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+                      onClick={() => handleEditUser(user)}
+                      title="Edit User"
                     >
-                      🗑️
+                      ✏️
                     </button>
-                  )}
+                    <button 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        user.status === 'active' 
+                          ? 'bg-green-100 hover:bg-green-200' 
+                          : 'bg-red-100 hover:bg-red-200'
+                      }`}
+                      onClick={() => handleToggleStatus(user.id)}
+                      title={user.status === 'active' ? 'Deactivate User' : 'Activate User'}
+                    >
+                      {user.status === 'active' ? '🟢' : '🔴'}
+                    </button>
+                    {user.role !== 'admin' && (
+                      <button 
+                        className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 flex items-center justify-center"
+                        onClick={() => handleDeleteUser(user.id)}
+                        title="Delete User"
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    user.status === 'active' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {user.status}
+                  </span>
                 </div>
               </div>
             ))}
@@ -255,18 +288,23 @@ const UserManagement = () => {
       )}
 
       {activeTab === 'roles' && (
-        <div className="roles-section">
-          <h3>Role Permissions</h3>
-          <div className="roles-grid">
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold text-gray-900">Role Permissions</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {Object.entries(rolePermissions).map(([role, permissions]) => (
-              <div key={role} className="role-card">
-                <h4 className={`role-title role-${role}`}>
+              <div key={role} className="card">
+                <h4 className={`text-lg font-bold mb-4 ${
+                  role === 'admin' ? 'text-red-600' :
+                  role === 'manager' ? 'text-blue-600' :
+                  'text-green-600'
+                }`}>
                   {role.charAt(0).toUpperCase() + role.slice(1)}
                 </h4>
-                <div className="permissions-list">
+                <div className="space-y-2">
                   {permissions.map((permission, index) => (
-                    <div key={index} className="permission-item">
-                      ✅ {permission}
+                    <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                      <span className="text-green-500">✅</span>
+                      {permission}
                     </div>
                   ))}
                 </div>
@@ -277,23 +315,25 @@ const UserManagement = () => {
       )}
 
       {activeTab === 'activity' && (
-        <div className="activity-section">
-          <h3>Recent Activity</h3>
-          <div className="activity-log">
-            <div className="activity-item">
-              <span className="activity-time">2024-01-25 10:30 AM</span>
-              <span className="activity-action">User Login</span>
-              <span className="activity-user">john@wabeesshoepalace.lk</span>
-            </div>
-            <div className="activity-item">
-              <span className="activity-time">2024-01-25 09:15 AM</span>
-              <span className="activity-action">New User Created</span>
-              <span className="activity-user">mike@wabeesshoepalace.lk</span>
-            </div>
-            <div className="activity-item">
-              <span className="activity-time">2024-01-24 04:45 PM</span>
-              <span className="activity-action">User Status Changed</span>
-              <span className="activity-user">jane@wabeesshoepalace.lk</span>
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
+          <div className="card">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                <span className="text-sm text-gray-600">2024-01-25 10:30 AM</span>
+                <span className="text-sm font-medium text-gray-900">User Login</span>
+                <span className="text-sm text-blue-600">john@wabeesshoepalace.lk</span>
+              </div>
+              <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                <span className="text-sm text-gray-600">2024-01-25 09:15 AM</span>
+                <span className="text-sm font-medium text-gray-900">New User Created</span>
+                <span className="text-sm text-blue-600">mike@wabeesshoepalace.lk</span>
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <span className="text-sm text-gray-600">2024-01-24 04:45 PM</span>
+                <span className="text-sm font-medium text-gray-900">User Status Changed</span>
+                <span className="text-sm text-blue-600">jane@wabeesshoepalace.lk</span>
+              </div>
             </div>
           </div>
         </div>
@@ -301,12 +341,12 @@ const UserManagement = () => {
 
       {/* Add/Edit User Modal */}
       {showAddUser && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{editingUser ? 'Edit User' : 'Add New User'}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">{editingUser ? 'Edit User' : 'Add New User'}</h3>
               <button 
-                className="close-btn"
+                className="text-gray-400 hover:text-gray-600"
                 onClick={() => {
                   setShowAddUser(false);
                   setEditingUser(null);
@@ -321,74 +361,80 @@ const UserManagement = () => {
                   });
                 }}
               >
-                ×
+                <span className="text-2xl">×</span>
               </button>
             </div>
             
-            <form onSubmit={editingUser ? handleUpdateUser : handleAddUser}>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Full Name</label>
+            <form onSubmit={editingUser ? handleUpdateUser : handleAddUser} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">Full Name</label>
                   <input
                     type="text"
                     name="name"
                     value={newUser.name}
                     onChange={handleInputChange}
+                    className="form-input w-full"
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label>Username</label>
+                <div>
+                  <label className="form-label">Username</label>
                   <input
                     type="text"
                     name="username"
                     value={newUser.username}
                     onChange={handleInputChange}
+                    className="form-input w-full"
                     required
                   />
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Email</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">Email</label>
                   <input
                     type="email"
                     name="email"
                     value={newUser.email}
                     onChange={handleInputChange}
+                    className="form-input w-full"
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label>Phone</label>
+                <div>
+                  <label className="form-label">Phone</label>
                   <input
                     type="tel"
                     name="phone"
                     value={newUser.phone}
                     onChange={handleInputChange}
+                    className="form-input w-full"
                     required
                   />
                 </div>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Password</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="form-label">Password</label>
                   <input
                     type="password"
                     name="password"
                     value={newUser.password}
                     onChange={handleInputChange}
+                    className="form-input w-full"
                     required
                   />
                 </div>
-                <div className="form-group">
-                  <label>Role</label>
+                <div>
+                  <label className="form-label">Role</label>
                   <select
                     name="role"
                     value={newUser.role}
                     onChange={handleInputChange}
+                    className="form-input w-full"
                     required
                   >
                     <option value="cashier">Cashier</option>
@@ -398,27 +444,40 @@ const UserManagement = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Address</label>
+              <div>
+                <label className="form-label">Address</label>
                 <textarea
                   name="address"
                   value={newUser.address}
                   onChange={handleInputChange}
+                  className="form-input w-full"
                   rows="3"
                   required
                 ></textarea>
               </div>
 
-              <div className="form-actions">
-                <button type="submit" className="submit-btn">
-                  {editingUser ? 'Update User' : 'Create User'}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  className="btn btn-primary flex-1"
+                >
+                  {editingUser ? 'Update User' : 'Add User'}
                 </button>
-                <button 
-                  type="button" 
-                  className="cancel-btn"
+                <button
+                  type="button"
+                  className="btn btn-outline flex-1"
                   onClick={() => {
                     setShowAddUser(false);
                     setEditingUser(null);
+                    setNewUser({
+                      username: '',
+                      password: '',
+                      name: '',
+                      email: '',
+                      role: 'cashier',
+                      phone: '',
+                      address: ''
+                    });
                   }}
                 >
                   Cancel

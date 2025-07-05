@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import './ExpenseManagement.css';
 
 // Sample expense data with various categories
 const sampleExpenses = [
@@ -196,107 +195,115 @@ const ExpenseManagement = () => {
   };
 
   return (
-    <div className="expense-management">
-      <div className="expense-header">
-        <h1>Expense Management</h1>
-        <div className="header-actions">
-          <button className="add-expense-btn" onClick={() => setShowForm(true)}>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">Expense Management</h1>
+        <div className="flex justify-between items-center">
+          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
             + Add Expense
           </button>
-          <button className="export-btn" onClick={handleExport}>
+          <button className="btn btn-secondary" onClick={handleExport}>
             Export CSV
           </button>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="expense-summary">
-        <div className="summary-card total">
-          <h3>Total Expenses</h3>
-          <p className="amount">{formatCurrency(calculateTotalExpenses())}</p>
-          <span className="period">Current Period</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="card border-blue-200 bg-blue-50">
+          <h3 className="text-sm font-medium text-blue-600 mb-1">Total Expenses</h3>
+          <p className="text-2xl font-bold text-blue-700">{formatCurrency(calculateTotalExpenses())}</p>
+          <span className="text-xs text-blue-600">Current Period</span>
         </div>
-        <div className="summary-card monthly">
-          <h3>Monthly Recurring</h3>
-          <p className="amount">
+        <div className="card border-green-200 bg-green-50">
+          <h3 className="text-sm font-medium text-green-600 mb-1">Monthly Recurring</h3>
+          <p className="text-2xl font-bold text-green-700">
             {formatCurrency(filteredExpenses.filter(e => e.isRecurring && e.type === 'Monthly').reduce((sum, e) => sum + e.amount, 0))}
           </p>
-          <span className="period">Per Month</span>
+          <span className="text-xs text-green-600">Per Month</span>
         </div>
-        <div className="summary-card categories">
-          <h3>Categories</h3>
-          <p className="amount">{Object.keys(calculateCategoryTotals()).length}</p>
-          <span className="period">Active</span>
+        <div className="card border-purple-200 bg-purple-50">
+          <h3 className="text-sm font-medium text-purple-600 mb-1">Categories</h3>
+          <p className="text-2xl font-bold text-purple-700">{Object.keys(calculateCategoryTotals()).length}</p>
+          <span className="text-xs text-purple-600">Active</span>
         </div>
-        <div className="summary-card average">
-          <h3>Average per Day</h3>
-          <p className="amount">{formatCurrency(calculateTotalExpenses() / (filteredExpenses.length || 1))}</p>
-          <span className="period">Daily Average</span>
+        <div className="card border-orange-200 bg-orange-50">
+          <h3 className="text-sm font-medium text-orange-600 mb-1">Average per Day</h3>
+          <p className="text-2xl font-bold text-orange-700">{formatCurrency(calculateTotalExpenses() / (filteredExpenses.length || 1))}</p>
+          <span className="text-xs text-orange-600">Daily Average</span>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="expense-filters">
-        <div className="filter-group">
-          <label>Date Range:</label>
-          <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
-            <option value="all">All Time</option>
-            <option value="7days">Last 7 Days</option>
-            <option value="30days">Last 30 Days</option>
-            <option value="90days">Last 90 Days</option>
-          </select>
-        </div>
+      <div className="card mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Filters</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div>
+            <label className="form-label">Date Range:</label>
+            <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="form-input w-full">
+              <option value="all">All Time</option>
+              <option value="7days">Last 7 Days</option>
+              <option value="30days">Last 30 Days</option>
+              <option value="90days">Last 90 Days</option>
+            </select>
+          </div>
 
-        <div className="filter-group">
-          <label>Category:</label>
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="all">All Categories</option>
-            {expenseCategories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label className="form-label">Category:</label>
+            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="form-input w-full">
+              <option value="all">All Categories</option>
+              {expenseCategories.map(category => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
 
-        <div className="filter-group">
-          <label>Type:</label>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="all">All Types</option>
-            <option value="recurring">Recurring</option>
-            <option value="one-time">One-time</option>
-          </select>
-        </div>
+          <div>
+            <label className="form-label">Type:</label>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="form-input w-full">
+              <option value="all">All Types</option>
+              <option value="recurring">Recurring</option>
+              <option value="one-time">One-time</option>
+            </select>
+          </div>
 
-        <div className="filter-group">
-          <label>Search:</label>
-          <input
-            type="text"
-            placeholder="Search expenses..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+          <div>
+            <label className="form-label">Search:</label>
+            <input
+              type="text"
+              placeholder="Search expenses..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="form-input w-full"
+            />
+          </div>
 
-        <button className="reset-filters-btn" onClick={resetFilters}>
-          Reset Filters
-        </button>
+          <div className="flex items-end">
+            <button className="btn btn-outline w-full" onClick={resetFilters}>
+              Reset Filters
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Category Breakdown */}
-      <div className="category-breakdown">
-        <h3>Expense by Category</h3>
-        <div className="category-grid">
+      <div className="card mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense by Category</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(calculateCategoryTotals()).map(([category, amount]) => (
-            <div key={category} className="category-card">
-              <div className="category-info">
-                <h4>{category}</h4>
-                <p className="category-amount">{formatCurrency(amount)}</p>
-                <span className="category-percentage">
-                  {((amount / calculateTotalExpenses()) * 100).toFixed(1)}%
+            <div key={category} className="p-4 bg-gray-50 rounded-lg">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-medium text-gray-900">{category}</h4>
+                <span className="text-sm font-semibold text-green-600">{formatCurrency(amount)}</span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs text-gray-600">
+                  {((amount / calculateTotalExpenses()) * 100).toFixed(1)}% of total
                 </span>
               </div>
-              <div className="category-bar">
+              <div className="w-full bg-gray-200 rounded-full h-2">
                 <div 
-                  className="bar-fill" 
+                  className="bg-primary-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${(amount / calculateTotalExpenses()) * 100}%` }}
                 ></div>
               </div>
@@ -306,52 +313,60 @@ const ExpenseManagement = () => {
       </div>
 
       {/* Expense List */}
-      <div className="expense-list">
-        <h3>Expense Records ({filteredExpenses.length})</h3>
-        <div className="expense-table">
-          <table>
-            <thead>
+      <div className="card">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Expense Records ({filteredExpenses.length})</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Type</th>
-                <th>Recurring</th>
-                <th>Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recurring</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-200">
               {filteredExpenses.map(expense => (
-                <tr key={expense.id}>
-                  <td>{expense.date}</td>
-                  <td>
-                    <span className={`category-badge ${expense.category.toLowerCase().replace(/\s+/g, '-')}`}>
+                <tr key={expense.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{expense.date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                       {expense.category}
                     </span>
                   </td>
-                  <td>{expense.description}</td>
-                  <td className="amount-cell">{formatCurrency(expense.amount)}</td>
-                  <td>
-                    <span className={`type-badge ${expense.type.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <td className="px-6 py-4 text-sm text-gray-900">{expense.description}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(expense.amount)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      expense.type === 'Monthly' ? 'bg-green-100 text-green-800' :
+                      expense.type === 'Weekly' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
                       {expense.type}
                     </span>
                   </td>
-                  <td>
-                    <span className={`recurring-badge ${expense.isRecurring ? 'yes' : 'no'}`}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      expense.isRecurring ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
                       {expense.isRecurring ? 'Yes' : 'No'}
                     </span>
                   </td>
-                  <td>
-                    <div className="action-buttons">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
                       <button 
-                        className="edit-btn"
+                        className="btn btn-primary text-xs py-1 px-3"
                         onClick={() => handleEdit(expense)}
                       >
                         Edit
                       </button>
                       <button 
-                        className="delete-btn"
+                        className="btn btn-danger text-xs py-1 px-3"
                         onClick={() => handleDelete(expense.id)}
                       >
                         Delete
@@ -367,12 +382,12 @@ const ExpenseManagement = () => {
 
       {/* Add/Edit Form Modal */}
       {showForm && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h3>
               <button 
-                className="close-btn"
+                className="text-gray-400 hover:text-gray-600"
                 onClick={() => {
                   setShowForm(false);
                   setEditingExpense(null);
@@ -386,26 +401,28 @@ const ExpenseManagement = () => {
                   });
                 }}
               >
-                ×
+                <span className="text-2xl">×</span>
               </button>
             </div>
             
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Date:</label>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="form-label">Date:</label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  className="form-input w-full"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label>Category:</label>
+              <div>
+                <label className="form-label">Category:</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  className="form-input w-full"
                   required
                 >
                   <option value="">Select Category</option>
@@ -415,23 +432,25 @@ const ExpenseManagement = () => {
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Description:</label>
+              <div>
+                <label className="form-label">Description:</label>
                 <input
                   type="text"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  className="form-input w-full"
                   placeholder="Enter expense description"
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label>Amount (Rs.):</label>
+              <div>
+                <label className="form-label">Amount (Rs.):</label>
                 <input
                   type="number"
                   value={formData.amount}
                   onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  className="form-input w-full"
                   placeholder="0.00"
                   step="0.01"
                   min="0"
@@ -439,11 +458,12 @@ const ExpenseManagement = () => {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Type:</label>
+              <div>
+                <label className="form-label">Type:</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({...formData, type: e.target.value})}
+                  className="form-input w-full"
                   required
                 >
                   <option value="One-time">One-time</option>
@@ -455,14 +475,16 @@ const ExpenseManagement = () => {
                 </select>
               </div>
 
-              <div className="form-group checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={formData.isRecurring}
-                    onChange={(e) => setFormData({...formData, isRecurring: e.target.checked})}
-                  />
-                  <span>Recurring Expense</span>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="isRecurring"
+                  checked={formData.isRecurring}
+                  onChange={(e) => setFormData({...formData, isRecurring: e.target.checked})}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                />
+                <label className="ml-2 text-sm text-gray-700">
+                  This is a recurring expense
                 </label>
               </div>
 

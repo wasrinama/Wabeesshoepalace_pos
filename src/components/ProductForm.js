@@ -221,277 +221,358 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
   };
 
   return (
-    <div className="product-form-overlay">
-      <div className="product-form-container">
-        <div className="product-form-header">
-          <h2>{product ? 'Edit Product' : 'Add New Product'}</h2>
-          <button onClick={onCancel} className="close-btn">×</button>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-gray-900">
+            {product ? 'Edit Product' : 'Add New Product'}
+          </h3>
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+            <span className="text-2xl">×</span>
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="product-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Product Name *</label>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Product Name *</label>
               <input
                 type="text"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={errors.name ? 'error' : ''}
+                className="form-input w-full"
                 placeholder="Enter product name"
+                required
               />
-              {errors.name && <span className="error-message">{errors.name}</span>}
+              {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
             </div>
 
-            <div className="form-group">
-              <label>Brand *</label>
+            <div>
+              <label className="form-label">Brand *</label>
               <input
                 type="text"
                 name="brand"
                 value={formData.brand}
                 onChange={handleChange}
-                className={errors.brand ? 'error' : ''}
+                className="form-input w-full"
                 placeholder="Enter brand name"
+                required
               />
-              {errors.brand && <span className="error-message">{errors.brand}</span>}
+              {errors.brand && <span className="text-red-500 text-sm mt-1">{errors.brand}</span>}
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Category *</label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-              >
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-              <div className="category-input-row">
-                <input
-                  type="text"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="Add new category"
-                />
-                <button type="button" onClick={handleAddCategory} className="add-btn">
-                  Add Category
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="form-label">Category</label>
+              <div className="flex gap-2">
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  className="form-input flex-1"
+                >
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setNewCategory(prompt('Enter new category:') || '')}
+                  className="btn btn-outline text-sm px-3"
+                >
+                  +
                 </button>
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Supplier</label>
-              <select
-                name="supplier"
-                value={formData.supplier}
+            <div>
+              <label className="form-label">Barcode</label>
+              <input
+                type="text"
+                name="barcode"
+                value={formData.barcode}
                 onChange={handleChange}
-              >
-                <option value="">Select supplier</option>
-                {currentSuppliers.map(supplier => (
-                  <option key={supplier.id} value={supplier.name}>{supplier.name}</option>
-                ))}
-              </select>
-              <div className="supplier-input-row">
-                <input
-                  type="text"
-                  value={newSupplier}
-                  onChange={(e) => setNewSupplier(e.target.value)}
-                  placeholder="Add new supplier"
-                />
-                <button type="button" onClick={handleAddSupplier} className="add-btn">
-                  Add Supplier
+                className="form-input w-full"
+                placeholder="Auto-generated"
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Supplier</label>
+              <div className="flex gap-2">
+                <select
+                  name="supplier"
+                  value={formData.supplier}
+                  onChange={handleChange}
+                  className="form-input flex-1"
+                >
+                  <option value="">Select supplier</option>
+                  {currentSuppliers.map(supplier => (
+                    <option key={supplier.id} value={supplier.name}>
+                      {supplier.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setNewSupplier(prompt('Enter new supplier name:') || '')}
+                  className="btn btn-outline text-sm px-3"
+                >
+                  +
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Selling Price *</label>
+          {/* Pricing */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Selling Price (Rs.) *</label>
               <input
                 type="number"
                 name="price"
                 value={formData.price}
                 onChange={handleChange}
-                className={errors.price ? 'error' : ''}
-                placeholder="Rs. 0.00"
+                className="form-input w-full"
+                placeholder="0.00"
                 step="0.01"
-                min="0"
+                required
               />
-              {errors.price && <span className="error-message">{errors.price}</span>}
+              {errors.price && <span className="text-red-500 text-sm mt-1">{errors.price}</span>}
             </div>
 
-            <div className="form-group">
-              <label>Cost Price *</label>
+            <div>
+              <label className="form-label">Cost Price (Rs.) *</label>
               <input
                 type="number"
                 name="costPrice"
                 value={formData.costPrice}
                 onChange={handleChange}
-                className={errors.costPrice ? 'error' : ''}
-                placeholder="Rs. 0.00"
+                className="form-input w-full"
+                placeholder="0.00"
                 step="0.01"
-                min="0"
+                required
               />
-              {errors.costPrice && <span className="error-message">{errors.costPrice}</span>}
+              {errors.costPrice && <span className="text-red-500 text-sm mt-1">{errors.costPrice}</span>}
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Barcode (Auto-Generated)</label>
+          {/* Stock Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Current Stock</label>
               <input
-                type="text"
-                name="barcode"
-                value={formData.barcode}
+                type="number"
+                name="stock"
+                value={formData.stock}
+                className="form-input w-full bg-gray-100"
                 readOnly
-                className="barcode-readonly"
-                placeholder="Auto-generated barcode"
               />
-              <small style={{color: '#7f8c8d', fontSize: '0.8rem'}}>
-                Barcode is automatically generated by the system
-              </small>
+              <p className="text-sm text-gray-500 mt-1">Auto-calculated from size quantities</p>
             </div>
 
-            <div className="form-group">
-              <label>Minimum Stock *</label>
+            <div>
+              <label className="form-label">Minimum Stock Alert</label>
               <input
                 type="number"
                 name="minStock"
                 value={formData.minStock}
                 onChange={handleChange}
-                className={errors.minStock ? 'error' : ''}
-                placeholder="0"
+                className="form-input w-full"
+                placeholder="10"
                 min="0"
               />
-              {errors.minStock && <span className="error-message">{errors.minStock}</span>}
+              {errors.minStock && <span className="text-red-500 text-sm mt-1">{errors.minStock}</span>}
             </div>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Total Stock Quantity (Auto-Calculated)</label>
-              <input
-                type="number"
-                name="stock"
-                value={formData.stock}
-                readOnly
-                className="barcode-readonly"
-                placeholder="0"
-              />
-              <small style={{color: '#7f8c8d', fontSize: '0.8rem'}}>
-                Total calculated from individual size quantities
-              </small>
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Available Sizes & Quantities *</label>
-            <div className="size-input-row">
+          {/* Size Management */}
+          <div>
+            <label className="form-label">Available Sizes & Quantities *</label>
+            
+            {/* Add Size Section */}
+            <div className="flex gap-2 mb-4">
               <select
                 value={newSize}
                 onChange={(e) => setNewSize(e.target.value)}
+                className="form-input"
               >
                 <option value="">Select size</option>
                 {commonSizes.map(size => (
                   <option key={size} value={size}>{size}</option>
                 ))}
               </select>
-              <button type="button" onClick={handleAddSize} className="add-btn">
+              <input
+                type="text"
+                value={newSize}
+                onChange={(e) => setNewSize(e.target.value)}
+                className="form-input flex-1"
+                placeholder="Or enter custom size"
+              />
+              <button
+                type="button"
+                onClick={handleAddSize}
+                className="btn btn-primary"
+              >
                 Add Size
               </button>
             </div>
-            <div className="size-quantities-list">
-              {formData.sizeQuantities.map((sizeQty, index) => (
-                <div key={sizeQty.size} className="size-quantity-item">
-                  <span className="size-label">Size {sizeQty.size}:</span>
+
+            {/* Size List */}
+            <div className="space-y-2">
+              {formData.sizeQuantities.map((sq, index) => (
+                <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                  <span className="font-medium min-w-16">Size {sq.size}:</span>
                   <input
                     type="number"
-                    value={sizeQty.quantity}
-                    onChange={(e) => handleSizeQuantityChange(sizeQty.size, e.target.value)}
+                    value={sq.quantity}
+                    onChange={(e) => handleSizeQuantityChange(sq.size, e.target.value)}
+                    className="form-input flex-1"
                     min="0"
-                    placeholder="0"
-                    className="quantity-input"
                   />
-                  <button type="button" onClick={() => handleRemoveSize(sizeQty.size)} className="remove-btn">
-                    ×
+                  <span className="text-sm text-gray-500">pieces</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSize(sq.size)}
+                    className="btn btn-danger text-sm px-2 py-1"
+                  >
+                    Remove
                   </button>
                 </div>
               ))}
             </div>
-            {errors.sizeQuantities && <span className="error-message">{errors.sizeQuantities}</span>}
+            {errors.sizeQuantities && <span className="text-red-500 text-sm mt-1">{errors.sizeQuantities}</span>}
           </div>
 
-          <div className="form-group">
-            <label>Available Colors *</label>
-            <div className="color-input-row">
+          {/* Color Management */}
+          <div>
+            <label className="form-label">Available Colors *</label>
+            
+            {/* Add Color Section */}
+            <div className="flex gap-2 mb-4">
               <select
                 value={newColor}
                 onChange={(e) => setNewColor(e.target.value)}
+                className="form-input"
               >
                 <option value="">Select color</option>
                 {commonColors.map(color => (
                   <option key={color} value={color}>{color}</option>
                 ))}
               </select>
-              <button type="button" onClick={handleAddColor} className="add-btn">
+              <input
+                type="text"
+                value={newColor}
+                onChange={(e) => setNewColor(e.target.value)}
+                className="form-input flex-1"
+                placeholder="Or enter custom color"
+              />
+              <button
+                type="button"
+                onClick={handleAddColor}
+                className="btn btn-primary"
+              >
                 Add Color
               </button>
             </div>
-            <div className="selected-items">
-              {formData.colors.map(color => (
-                <span key={color} className="selected-item">
-                  {color}
-                  <button type="button" onClick={() => handleRemoveColor(color)}>×</button>
-                </span>
+
+            {/* Color List */}
+            <div className="flex flex-wrap gap-2">
+              {formData.colors.map((color, index) => (
+                <div key={index} className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1">
+                  <span className="text-sm">{color}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveColor(color)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
-            {errors.colors && <span className="error-message">{errors.colors}</span>}
+            {errors.colors && <span className="text-red-500 text-sm mt-1">{errors.colors}</span>}
           </div>
 
-          <div className="form-group">
-            <label>Product Images</label>
-            <div className="image-input-row">
+          {/* Image Management */}
+          <div>
+            <label className="form-label">Product Images</label>
+            
+            {/* Add Image Section */}
+            <div className="flex gap-2 mb-4">
               <input
-                type="text"
+                type="url"
                 value={newImage}
                 onChange={(e) => setNewImage(e.target.value)}
+                className="form-input flex-1"
                 placeholder="Enter image URL"
               />
-              <button type="button" onClick={handleAddImage} className="add-btn">
+              <button
+                type="button"
+                onClick={handleAddImage}
+                className="btn btn-primary"
+              >
                 Add Image
               </button>
             </div>
-            <div className="selected-items">
+
+            {/* Image List */}
+            <div className="space-y-2">
               {formData.images.map((image, index) => (
-                <span key={index} className="selected-item">
-                  Image {index + 1}
-                  <button type="button" onClick={() => handleRemoveImage(image)}>×</button>
-                </span>
+                <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                  <img
+                    src={image}
+                    alt={`Product ${index + 1}`}
+                    className="w-16 h-16 object-cover rounded"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  <input
+                    type="url"
+                    value={image}
+                    onChange={(e) => {
+                      const newImages = [...formData.images];
+                      newImages[index] = e.target.value;
+                      setFormData(prev => ({ ...prev, images: newImages }));
+                    }}
+                    className="form-input flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveImage(image)}
+                    className="btn btn-danger text-sm px-2 py-1"
+                  >
+                    Remove
+                  </button>
+                </div>
               ))}
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Description</label>
+          {/* Description */}
+          <div>
+            <label className="form-label">Product Description</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Enter product description"
-              rows="3"
+              className="form-input w-full"
+              rows="4"
+              placeholder="Enter product description (optional)"
             />
           </div>
 
-          <div className="form-actions">
-            <button type="button" onClick={onCancel} className="btn btn-secondary">
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button type="submit" className="btn btn-primary flex-1">
               {product ? 'Update Product' : 'Add Product'}
+            </button>
+            <button type="button" onClick={onCancel} className="btn btn-outline flex-1">
+              Cancel
             </button>
           </div>
         </form>

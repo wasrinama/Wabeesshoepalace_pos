@@ -3,71 +3,75 @@ import React from 'react';
 const StockAlerts = ({ products }) => {
   if (products.length === 0) {
     return (
-      <div className="stock-alerts">
-        <div className="no-alerts">
-          <h3>🎉 Great News!</h3>
-          <p>All products are well stocked. No low stock alerts at this time.</p>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="card text-center py-12">
+          <h3 className="text-2xl font-bold text-green-600 mb-4">🎉 Great News!</h3>
+          <p className="text-gray-600">All products are well stocked. No low stock alerts at this time.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="stock-alerts">
-      <div className="alerts-header">
-        <h3>⚠️ Low Stock Alerts</h3>
-        <p>{products.length} items need restocking</p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="mb-6">
+        <h3 className="text-3xl font-bold text-red-600 mb-2 flex items-center gap-2">
+          ⚠️ Low Stock Alerts
+        </h3>
+        <p className="text-gray-600">{products.length} items need restocking</p>
       </div>
 
-      <div className="alerts-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Brand</th>
-              <th>Category</th>
-              <th>Current Stock</th>
-              <th>Min Stock</th>
-              <th>Supplier</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map(product => (
-              <tr key={product.id} className="alert-row">
-                <td>
-                  <div className="product-info">
-                    <strong>{product.name}</strong>
-                    <small>SKU: {product.sku}</small>
-                  </div>
-                </td>
-                <td>{product.brand}</td>
-                <td>{product.category}</td>
-                <td>
-                  <span className="stock-critical">
-                    {product.stock}
-                  </span>
-                </td>
-                <td>{product.minStock}</td>
-                <td>{product.supplier || 'Not assigned'}</td>
-                <td>
-                  <button className="btn btn-primary btn-sm">
-                    Reorder
-                  </button>
-                </td>
+      <div className="card mb-6">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {products.map(product => (
+                <tr key={product.id} className="hover:bg-red-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="font-medium text-gray-900">{product.name}</div>
+                      <div className="text-sm text-gray-500">SKU: {product.sku}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.brand}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
+                      {product.stock}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.minStock}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.supplier || 'Not assigned'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button className="btn btn-primary text-xs py-1 px-3">
+                      Reorder
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="alerts-summary">
-        <div className="summary-card">
-          <h4>Quick Actions</h4>
-          <button className="btn btn-primary">
+      <div className="card">
+        <h4 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h4>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button className="btn btn-primary flex-1">
             Generate Purchase Order for All
           </button>
-          <button className="btn btn-secondary">
+          <button className="btn btn-secondary flex-1">
             Export Low Stock Report
           </button>
         </div>

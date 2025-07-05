@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './POSSystem.css';
 
 const POSSystem = () => {
   const [barcode, setBarcode] = useState('');
@@ -470,39 +469,39 @@ const POSSystem = () => {
   };
 
   return (
-    <div className="pos-system">
-      <div className="pos-header">
-        <h2>🛍️ Wabees Shoe Palace - POS System</h2>
-        <div className="header-actions">
-          <button className="return-btn" onClick={() => setShowReturn(true)}>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">🛍️ Wabees Shoe Palace - POS System</h2>
+        <div className="flex gap-3">
+          <button className="btn btn-secondary flex items-center gap-2" onClick={() => setShowReturn(true)}>
             💰 Return
           </button>
-          <button className="new-sale-btn" onClick={handleNewSale}>
+          <button className="btn btn-primary flex items-center gap-2" onClick={handleNewSale}>
             📋 New Sale
           </button>
         </div>
       </div>
 
-      <div className="pos-main">
-        <div className="pos-left-column">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-6">
           {/* Search/Scan Section */}
-          <div className="search-section">
-            <div className="search-inputs">
-              <div className="barcode-input">
-                <label>📱 Scan Barcode</label>
+          <div className="card space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">📱 Scan Barcode</label>
                 <input
                   type="text"
-                  className="barcode-field"
+                  className="form-input"
                   placeholder="Scan barcode..."
                   value={barcode}
                   onChange={handleBarcodeChange}
                 />
               </div>
-              <div className="search-input">
-                <label>🔍 Search Product</label>
+              <div>
+                <label className="form-label">🔍 Search Product</label>
                 <input
                   type="text"
-                  className="search-field"
+                  className="form-input"
                   placeholder="Search product name..."
                   value={searchTerm}
                   onChange={handleSearchChange}
@@ -511,15 +510,15 @@ const POSSystem = () => {
             </div>
             
             {searchResults.length > 0 && (
-              <div className="search-results">
+              <div className="bg-white border border-gray-300 rounded-md shadow-sm max-h-48 overflow-y-auto">
                 {searchResults.map(product => (
                   <div
                     key={product.id}
-                    className="search-result-item"
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-200 last:border-b-0 flex justify-between items-center"
                     onClick={() => addToCart(product)}
                   >
-                    <span className="product-name">{product.name}</span>
-                    <span className="product-price">Rs. {product.price.toLocaleString()}</span>
+                    <span className="font-medium text-gray-900">{product.name}</span>
+                    <span className="font-semibold text-primary-600">Rs. {product.price.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -527,57 +526,74 @@ const POSSystem = () => {
           </div>
 
           {/* Cart Section */}
-          <div className="cart-section">
-            <h3>🛒 Sale Items</h3>
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">🛒 Sale Items</h3>
             {cartItems.length === 0 ? (
-              <div className="empty-cart">
-                <p>No items added yet</p>
-                <p>Search or scan products to add them to sale</p>
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg font-medium">No items added yet</p>
+                <p className="text-sm mt-1">Search or scan products to add them to sale</p>
               </div>
             ) : (
-              <div className="cart-items">
+              <div className="space-y-4">
                 {cartItems.map(item => (
-                  <div key={item.id} className="cart-item">
-                    <div className="item-info">
-                      <div className="item-name">{item.name}</div>
-                      <div className="item-price">Rs. {item.price.toLocaleString()}</div>
-                      <div className="item-category">{item.category}</div>
-                      
-                      {/* Individual Item Discount */}
-                      <div className="item-discount">
-                        <label>Item Discount:</label>
-                        <div className="item-discount-controls">
-                          <select 
-                            value={item.itemDiscountType}
-                            onChange={(e) => updateItemDiscount(item.id, e.target.value, item.itemDiscount)}
-                          >
-                            <option>Fixed Amount (Rs.)</option>
-                            <option>Percentage (%)</option>
-                          </select>
-                          <input
-                            type="number"
-                            value={item.itemDiscount}
-                            onChange={(e) => updateItemDiscount(item.id, item.itemDiscountType, Number(e.target.value))}
-                            placeholder="0"
-                          />
+                  <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-600">Rs. {item.price.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500">{item.category}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-semibold text-gray-900">
+                          Rs. {calculateItemTotal(item).toLocaleString()}
                         </div>
+                        <button 
+                          className="text-red-600 hover:text-red-800 text-sm mt-1"
+                          onClick={() => removeFromCart(item.id)}
+                        >
+                          ❌ Remove
+                        </button>
                       </div>
                     </div>
-                    <div className="item-controls">
-                      <div className="quantity-controls">
-                        <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
-                        <span className="quantity">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
+                    
+                    {/* Individual Item Discount */}
+                    <div className="mb-3 p-3 bg-gray-50 rounded-md">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Item Discount:</label>
+                      <div className="flex gap-2">
+                        <select 
+                          className="form-input flex-1"
+                          value={item.itemDiscountType}
+                          onChange={(e) => updateItemDiscount(item.id, e.target.value, item.itemDiscount)}
+                        >
+                          <option>Fixed Amount (Rs.)</option>
+                          <option>Percentage (%)</option>
+                        </select>
+                        <input
+                          type="number"
+                          className="form-input w-24"
+                          value={item.itemDiscount}
+                          onChange={(e) => updateItemDiscount(item.id, item.itemDiscountType, Number(e.target.value))}
+                          placeholder="0"
+                        />
                       </div>
-                      <div className="item-total">
-                        Rs. {calculateItemTotal(item).toLocaleString()}
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-medium"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        >
+                          -
+                        </button>
+                        <span className="font-medium text-gray-900 min-w-[2rem] text-center">{item.quantity}</span>
+                        <button 
+                          className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-medium"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        >
+                          +
+                        </button>
                       </div>
-                      <button 
-                        className="remove-btn"
-                        onClick={() => removeFromCart(item.id)}
-                      >
-                        ❌
-                      </button>
                     </div>
                   </div>
                 ))}
@@ -586,14 +602,16 @@ const POSSystem = () => {
           </div>
         </div>
 
-        <div className="pos-right-column">
+        <div className="space-y-6">
           {/* Billing Section */}
-          <div className="billing-section">
-            <div className="discount-section">
-              <h4>🔥 Discount</h4>
-              <div className="discount-controls">
+          <div className="card space-y-4">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                🔥 Discount
+              </h4>
+              <div className="flex gap-2">
                 <select 
-                  className="discount-type"
+                  className="form-input flex-1"
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value)}
                 >
@@ -602,7 +620,7 @@ const POSSystem = () => {
                 </select>
                 <input
                   type="number"
-                  className="discount-input"
+                  className="form-input w-24"
                   placeholder="0"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(Number(e.target.value))}
@@ -610,10 +628,12 @@ const POSSystem = () => {
               </div>
             </div>
 
-            <div className="payment-section">
-              <h4>💳 Payment Method</h4>
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                💳 Payment Method
+              </h4>
               <select 
-                className="payment-select"
+                className="form-input w-full"
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               >
@@ -624,11 +644,13 @@ const POSSystem = () => {
               </select>
             </div>
 
-            <div className="customer-section">
-              <h4>📞 Customer Phone (SMS Invoice)</h4>
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                📞 Customer Phone (SMS Invoice)
+              </h4>
               <input
                 type="tel"
-                className="customer-phone"
+                className="form-input w-full"
                 placeholder="Enter phone number..."
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
@@ -637,42 +659,46 @@ const POSSystem = () => {
           </div>
 
           {/* Totals Section */}
-          <div className="totals-section">
-            <div className="total-row">
-              <span>Subtotal:</span>
-              <span>Rs. {calculateSubtotal().toLocaleString()}</span>
-            </div>
-            <div className="total-row">
-              <span className="discount-amount">Discount:</span>
-              <span className="discount-amount">-Rs. {calculateDiscount().toLocaleString()}</span>
-            </div>
-            <div className="total-row grand-total">
-              <span>Total:</span>
-              <span>Rs. {calculateTotal().toLocaleString()}</span>
+          <div className="card">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-gray-700">
+                <span>Subtotal:</span>
+                <span className="font-medium">Rs. {calculateSubtotal().toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-red-600">
+                <span>Discount:</span>
+                <span className="font-medium">-Rs. {calculateDiscount().toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-xl font-bold text-gray-900 pt-3 border-t border-gray-200">
+                <span>Total:</span>
+                <span>Rs. {calculateTotal().toLocaleString()}</span>
+              </div>
             </div>
           </div>
 
           {/* Customer Money Section */}
-          <div className="customer-money-section">
-            <h4>💰 Customer Payment</h4>
+          <div className="card">
+            <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              💰 Customer Payment
+            </h4>
             <input
               type="number"
-              className="customer-money-input"
+              className="form-input w-full"
               placeholder="Enter amount received..."
               value={customerMoney}
               onChange={(e) => setCustomerMoney(e.target.value)}
             />
             {customerMoney && (
-              <div className="balance-display">
-                <div className="balance-row">
+              <div className="mt-4 p-3 bg-gray-50 rounded-md space-y-2">
+                <div className="flex justify-between items-center text-sm text-gray-600">
                   <span>Amount Received:</span>
-                  <span>Rs. {parseFloat(customerMoney).toLocaleString()}</span>
+                  <span className="font-medium">Rs. {parseFloat(customerMoney).toLocaleString()}</span>
                 </div>
-                <div className="balance-row">
+                <div className="flex justify-between items-center text-sm text-gray-600">
                   <span>Total Amount:</span>
-                  <span>Rs. {calculateTotal().toLocaleString()}</span>
+                  <span className="font-medium">Rs. {calculateTotal().toLocaleString()}</span>
                 </div>
-                <div className={`balance-row ${calculateBalance() >= 0 ? 'positive-balance' : 'negative-balance'}`}>
+                <div className={`flex justify-between items-center text-sm font-bold ${calculateBalance() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   <span>Balance:</span>
                   <span>Rs. {calculateBalance().toLocaleString()}</span>
                 </div>
@@ -682,7 +708,7 @@ const POSSystem = () => {
 
           {/* Process Payment Button */}
           <button 
-            className="process-payment-btn"
+            className="btn btn-primary w-full text-lg py-4 flex items-center justify-center gap-2"
             onClick={handleProcessPayment}
             disabled={cartItems.length === 0}
           >
@@ -693,35 +719,36 @@ const POSSystem = () => {
 
       {/* Save/Print Modal */}
       {showSavePrint && (
-        <div className="save-print-modal">
-          <div className="modal-overlay"></div>
-          <div className="save-print-content" onClick={(e) => e.stopPropagation()}>
-            <div className="save-print-header">
-              <h3>Sale Completed!</h3>
-              <button className="close-btn" onClick={handleCloseSavePrint}>×</button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Sale Completed!</h3>
+              <button className="text-gray-400 hover:text-gray-600" onClick={handleCloseSavePrint}>
+                <span className="text-2xl">×</span>
+              </button>
             </div>
-            <div className="save-print-options">
-              <p>What would you like to do with this invoice?</p>
-              <div className="save-print-buttons">
-                <button className="print-btn" onClick={(e) => {
+            <div className="space-y-4">
+              <p className="text-gray-600">What would you like to do with this invoice?</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button className="btn btn-primary flex items-center gap-2" onClick={(e) => {
                   e.stopPropagation();
                   handlePrint();
                 }}>
                   🖨️ Print
                 </button>
-                <button className="save-btn" onClick={(e) => {
+                <button className="btn btn-secondary flex items-center gap-2" onClick={(e) => {
                   e.stopPropagation();
                   handleSaveInvoice();
                 }}>
                   💾 Save
                 </button>
-                <button className="sms-btn" onClick={(e) => {
+                <button className="btn btn-outline flex items-center gap-2" onClick={(e) => {
                   e.stopPropagation();
                   handleSendSMS();
                 }}>
                   📱 Send SMS
                 </button>
-                <button className="close-modal-btn" onClick={(e) => {
+                <button className="btn btn-outline flex items-center gap-2" onClick={(e) => {
                   e.stopPropagation();
                   handleCloseSavePrint();
                 }}>
@@ -736,11 +763,13 @@ const POSSystem = () => {
       {/* Invoice Modal */}
       {showInvoice && currentInvoice && (
         <div className="invoice-modal">
-          <div className="modal-overlay" onClick={() => setShowInvoice(false)}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowInvoice(false)}></div>
           <div className="invoice-content">
             <div className="invoice-header">
               <h3>Invoice Preview</h3>
-              <button className="close-btn" onClick={() => setShowInvoice(false)}>×</button>
+              <button className="text-gray-400 hover:text-gray-600" onClick={() => setShowInvoice(false)}>
+              <span className="text-2xl">×</span>
+            </button>
             </div>
             <div id="invoice-content">
               <div className="store-info">
@@ -834,11 +863,13 @@ const POSSystem = () => {
       {/* Return Modal */}
       {showReturn && (
         <div className="return-modal">
-          <div className="modal-overlay" onClick={() => setShowReturn(false)}></div>
+          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowReturn(false)}></div>
           <div className="return-content">
             <div className="return-header">
               <h3>Return Items</h3>
-              <button className="close-btn" onClick={() => setShowReturn(false)}>×</button>
+              <button className="text-gray-400 hover:text-gray-600" onClick={() => setShowReturn(false)}>
+              <span className="text-2xl">×</span>
+            </button>
             </div>
             
             <div className="return-search">

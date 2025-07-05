@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './Login.css';
 import authService from '../services/authService';
 
 const Login = ({ onLogin }) => {
@@ -48,18 +47,27 @@ const Login = ({ onLogin }) => {
   ];
 
   return (
-    <div className="login-container">
-      <div className="login-background">
-        <div className="login-card">
-          <div className="login-header">
-            <h1>🛍️ Wabees Shoe Palace</h1>
-            <h2>Point of Sale System</h2>
-            <p>Please login to continue</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 px-4">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <div className="bg-white rounded-full p-4 shadow-lg">
+              <span className="text-4xl">🛍️</span>
+            </div>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Wabees Shoe Palace</h1>
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">Point of Sale System</h2>
+          <p className="text-gray-600">Please login to continue</p>
+        </div>
 
-          <form className="login-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
+        {/* Login Form */}
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="username" className="form-label">
+                Username
+              </label>
               <input
                 type="text"
                 id="username"
@@ -67,12 +75,15 @@ const Login = ({ onLogin }) => {
                 value={loginData.username}
                 onChange={handleInputChange}
                 placeholder="Enter your username"
+                className="form-input"
                 required
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
+            <div>
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
               <input
                 type="password"
                 id="password"
@@ -80,42 +91,65 @@ const Login = ({ onLogin }) => {
                 value={loginData.password}
                 onChange={handleInputChange}
                 placeholder="Enter your password"
+                className="form-input"
                 required
               />
             </div>
 
             {error && (
-              <div className="error-message">
-                <span>⚠️ {error}</span>
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <span className="text-red-800 text-sm flex items-center">
+                  <span className="mr-2">⚠️</span>
+                  {error}
+                </span>
               </div>
             )}
 
-            <button 
-              type="submit" 
-              className="login-btn"
+            <button
+              type="submit"
               disabled={loading}
+              className="w-full btn btn-primary text-base py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? '🔄 Logging in...' : '🔐 Login'}
+              {loading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Logging in...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  <span className="mr-2">🔐</span>
+                  Login
+                </span>
+              )}
             </button>
           </form>
+        </div>
 
-          <div className="demo-credentials">
-            <h3>Demo Credentials:</h3>
-            <div className="demo-cards">
-              {demoCredentials.map((cred, index) => (
-                <div key={index} className="demo-card">
-                  <h4>{cred.role}</h4>
-                  <p><strong>Username:</strong> {cred.username}</p>
-                  <p><strong>Password:</strong> {cred.password}</p>
-                </div>
-              ))}
-            </div>
+        {/* Demo Credentials */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Demo Credentials</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {demoCredentials.map((cred, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg p-4 text-center">
+                <h4 className="font-semibold text-gray-900 mb-2">{cred.role}</h4>
+                <p className="text-sm text-gray-600 mb-1">
+                  <span className="font-medium">Username:</span> {cred.username}
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-medium">Password:</span> {cred.password}
+                </p>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div className="login-footer">
-            <p>© 2024 Wabees Shoe Palace. All rights reserved.</p>
-            <p>237, Main Street Maruthamunai-03 • Phone: 067 2220834</p>
-          </div>
+        {/* Footer */}
+        <div className="text-center text-gray-500 text-sm">
+          <p>© 2024 Wabees Shoe Palace. All rights reserved.</p>
+          <p className="mt-1">237, Main Street Maruthamunai-03 • Phone: 067 2220834</p>
         </div>
       </div>
     </div>

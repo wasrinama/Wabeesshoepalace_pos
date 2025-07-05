@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './Dashboard.css';
 
 // Sample data for dashboard analytics
 const sampleSalesData = [
@@ -155,10 +154,10 @@ const Dashboard = () => {
     const range = maxValue - minValue;
 
     return (
-      <div className="trend-chart">
-        <h4>{title}</h4>
-        <div className="chart-container">
-          <svg width="100%" height="200" viewBox="0 0 400 200">
+      <div className="bg-white rounded-lg p-4 shadow-sm">
+        <h4 className="text-lg font-semibold text-gray-800 mb-4">{title}</h4>
+        <div className="w-full h-48">
+          <svg width="100%" height="100%" viewBox="0 0 400 200" className="border rounded">
             <defs>
               <linearGradient id={`gradient-${title}`} x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stopColor={color} stopOpacity="0.3" />
@@ -204,22 +203,6 @@ const Dashboard = () => {
               ].join(' ')}
               fill={`url(#gradient-${title})`}
             />
-
-            {data.map((point, index) => {
-              const x = (index / (data.length - 1)) * 400;
-              const y = 180 - ((point.value - minValue) / range) * 160;
-              return (
-                <circle
-                  key={index}
-                  cx={x}
-                  cy={y}
-                  r="4"
-                  fill={color}
-                  stroke="white"
-                  strokeWidth="2"
-                />
-              );
-            })}
           </svg>
         </div>
       </div>
@@ -320,114 +303,138 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1>Dashboard</h1>
-        <div className="dashboard-controls">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-4 lg:mb-0">Dashboard</h1>
+        <div className="flex flex-col sm:flex-row gap-3">
           <select 
             value={dateRange} 
             onChange={(e) => setDateRange(e.target.value)}
-            className="date-range-select"
+            className="form-input w-full sm:w-auto"
           >
             <option value="7days">Last 7 Days</option>
             <option value="30days">Last 30 Days</option>
             <option value="90days">Last 90 Days</option>
             <option value="year">This Year</option>
           </select>
-          <button className="export-btn" onClick={() => handleExportReport('summary')}>
+          <button className="btn btn-primary" onClick={() => handleExportReport('summary')}>
             Export Report
           </button>
         </div>
       </div>
 
-      <div className="dashboard-tabs">
+      <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200">
         <button 
-          className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'overview' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('overview')}
         >
           Overview
         </button>
         <button 
-          className={`tab ${activeTab === 'sales' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'sales' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('sales')}
         >
           Sales Analytics
         </button>
         <button 
-          className={`tab ${activeTab === 'products' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'products' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('products')}
         >
           Product Performance
         </button>
         <button 
-          className={`tab ${activeTab === 'customers' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'customers' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('customers')}
         >
           Customer Insights
         </button>
         <button 
-          className={`tab ${activeTab === 'reports' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'reports' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('reports')}
         >
           Reports
         </button>
         <button 
-          className={`tab ${activeTab === 'dayend' ? 'active' : ''}`}
+          className={`px-4 py-2 font-medium text-sm rounded-t-lg border-b-2 transition-colors ${
+            activeTab === 'dayend' 
+              ? 'text-primary-600 border-primary-600 bg-primary-50' 
+              : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+          }`}
           onClick={() => setActiveTab('dayend')}
         >
           Day-End Closing
         </button>
       </div>
 
-      <div className="dashboard-content">
+      <div className="space-y-6">
         {activeTab === 'overview' && (
-          <div className="overview-section">
-            <div className="metrics-grid">
-              <div className="metric-card sales">
-                <h3>Total Sales</h3>
-                <p className="metric-value">{formatCurrency(metrics.totalSales)}</p>
-                <p className="metric-change positive">+{metrics.salesGrowth.toFixed(1)}%</p>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Sales</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalSales)}</p>
+                <p className="text-green-600 text-sm font-medium">+{metrics.salesGrowth.toFixed(1)}%</p>
               </div>
-              <div className="metric-card profit">
-                <h3>Gross Profit</h3>
-                <p className="metric-value">{formatCurrency(metrics.grossProfit)}</p>
-                <p className="metric-change positive">+{metrics.grossProfitMargin.toFixed(1)}%</p>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Gross Profit</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.grossProfit)}</p>
+                <p className="text-green-600 text-sm font-medium">+{metrics.grossProfitMargin.toFixed(1)}%</p>
               </div>
-              <div className="metric-card expenses">
-                <h3>Total Expenses</h3>
-                <p className="metric-value">{formatCurrency(metrics.totalExpenses)}</p>
-                <p className="metric-change neutral">{metrics.expenseRatio.toFixed(1)}% of sales</p>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Expenses</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalExpenses)}</p>
+                <p className="text-gray-600 text-sm font-medium">{metrics.expenseRatio.toFixed(1)}% of sales</p>
               </div>
-              <div className="metric-card net-profit">
-                <h3>Net Profit</h3>
-                <p className="metric-value">{formatCurrency(metrics.netProfit)}</p>
-                <p className={`metric-change ${metrics.netProfit > 0 ? 'positive' : 'negative'}`}>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Net Profit</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.netProfit)}</p>
+                <p className={`text-sm font-medium ${metrics.netProfit > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {metrics.netProfitMargin.toFixed(1)}% margin
                 </p>
               </div>
-              <div className="metric-card orders">
-                <h3>Total Orders</h3>
-                <p className="metric-value">{formatNumber(metrics.totalOrders)}</p>
-                <p className="metric-change positive">+12.5%</p>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Orders</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(metrics.totalOrders)}</p>
+                <p className="text-green-600 text-sm font-medium">+12.5%</p>
               </div>
-              <div className="metric-card customers">
-                <h3>Total Customers</h3>
-                <p className="metric-value">{formatNumber(metrics.totalCustomers)}</p>
-                <p className="metric-change positive">+8.2%</p>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Total Customers</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatNumber(metrics.totalCustomers)}</p>
+                <p className="text-green-600 text-sm font-medium">+8.2%</p>
               </div>
-              <div className="metric-card aov">
-                <h3>Avg Order Value</h3>
-                <p className="metric-value">{formatCurrency(metrics.averageOrderValue)}</p>
-                <p className="metric-change positive">+5.1%</p>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Avg Order Value</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.averageOrderValue)}</p>
+                <p className="text-green-600 text-sm font-medium">+5.1%</p>
               </div>
-              <div className="metric-card recurring">
-                <h3>Monthly Expenses</h3>
-                <p className="metric-value">{formatCurrency(metrics.monthlyRecurringExpenses)}</p>
-                <p className="metric-change neutral">Recurring</p>
+              <div className="card">
+                <h3 className="text-sm font-medium text-gray-500 mb-1">Monthly Expenses</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.monthlyRecurringExpenses)}</p>
+                <p className="text-gray-600 text-sm font-medium">Recurring</p>
               </div>
             </div>
 
-            <div className="charts-grid">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <TrendChart 
                 data={getTrendData('sales')} 
                 title="Sales Trend" 
@@ -440,53 +447,53 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="overview-insights">
-              <div className="insight-card">
-                <h3>Today's Performance</h3>
-                <div className="today-stats">
-                  <div className="stat-item">
-                    <span>Sales</span>
-                    <span>{formatCurrency(145000)}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Performance</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Sales</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(145000)}</span>
                   </div>
-                  <div className="stat-item">
-                    <span>Gross Profit</span>
-                    <span>{formatCurrency(43500)}</span>
+                  <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                    <span className="text-gray-600">Gross Profit</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(43500)}</span>
                   </div>
-                  <div className="stat-item">
-                    <span>Net Profit</span>
-                    <span>{formatCurrency(25000)}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-600">Net Profit</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(25000)}</span>
                   </div>
                 </div>
               </div>
-              <div className="insight-card">
-                <h3>Expense Breakdown</h3>
-                <div className="expense-breakdown-list">
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Breakdown</h3>
+                <div className="space-y-3">
                   {Object.entries(metrics.expensesByCategory).slice(0, 3).map(([category, amount]) => (
-                    <div key={category} className="expense-item">
-                      <span>{category}</span>
-                      <span>{formatCurrency(amount)}</span>
+                    <div key={category} className="flex justify-between items-center py-2 border-b border-gray-100">
+                      <span className="text-gray-600">{category}</span>
+                      <span className="font-semibold text-red-600">{formatCurrency(amount)}</span>
                     </div>
                   ))}
-                  <div className="expense-item total">
-                    <span>Total Expenses</span>
-                    <span>{formatCurrency(metrics.totalExpenses)}</span>
+                  <div className="flex justify-between items-center py-2 border-t border-gray-200 pt-3">
+                    <span className="font-medium text-gray-900">Total Expenses</span>
+                    <span className="font-bold text-red-700">{formatCurrency(metrics.totalExpenses)}</span>
                   </div>
                 </div>
               </div>
-              <div className="insight-card">
-                <h3>Inventory Alerts</h3>
-                <div className="alert-items">
-                  <div className="alert-item low-stock">
-                    <span>⚠️</span>
-                    <span>Adidas Ultra Boost - Low Stock</span>
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Inventory Alerts</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                    <span className="text-yellow-600">⚠️</span>
+                    <span className="text-sm text-yellow-800">Adidas Ultra Boost - Low Stock</span>
                   </div>
-                  <div className="alert-item out-of-stock">
-                    <span>🚨</span>
-                    <span>Converse Chuck Taylor - Out of Stock</span>
+                  <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                    <span className="text-red-600">🚨</span>
+                    <span className="text-sm text-red-800">Converse Chuck Taylor - Out of Stock</span>
                   </div>
-                  <div className="alert-item reorder">
-                    <span>📦</span>
-                    <span>Vans Old Skool - Reorder Soon</span>
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <span className="text-blue-600">📦</span>
+                    <span className="text-sm text-blue-800">Vans Old Skool - Reorder Soon</span>
                   </div>
                 </div>
               </div>
@@ -495,23 +502,23 @@ const Dashboard = () => {
         )}
 
         {activeTab === 'sales' && (
-          <div className="sales-section">
-            <div className="sales-header">
-              <h2>Sales Analytics</h2>
-              <button className="export-btn" onClick={() => handleExportReport('sales')}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Sales Analytics</h2>
+              <button className="btn btn-secondary" onClick={() => handleExportReport('sales')}>
                 Export Sales Data
               </button>
             </div>
 
-            <div className="sales-charts">
-              <div className="chart-container">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="card">
                 <TrendChart 
                   data={getTrendData('sales')} 
                   title="Sales Performance" 
                   color="#3498db" 
                 />
               </div>
-              <div className="chart-container">
+              <div className="card">
                 <TrendChart 
                   data={getTrendData('profit')} 
                   title="Profit Analysis" 
@@ -520,64 +527,78 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="sales-breakdown">
-              <div className="breakdown-card">
-                <h3>Sales by Category</h3>
-                <div className="category-stats">
-                  <div className="category-item">
-                    <span>Running Shoes</span>
-                    <div className="category-bar">
-                      <div className="bar-fill" style={{width: '40%'}}></div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Sales by Category</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Running Shoes</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: '40%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">40%</span>
                     </div>
-                    <span>40%</span>
                   </div>
-                  <div className="category-item">
-                    <span>Casual Shoes</span>
-                    <div className="category-bar">
-                      <div className="bar-fill" style={{width: '35%'}}></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Casual Shoes</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: '35%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">35%</span>
                     </div>
-                    <span>35%</span>
                   </div>
-                  <div className="category-item">
-                    <span>Formal Shoes</span>
-                    <div className="category-bar">
-                      <div className="bar-fill" style={{width: '15%'}}></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Formal Shoes</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-yellow-600 h-2 rounded-full transition-all duration-300" style={{width: '15%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">15%</span>
                     </div>
-                    <span>15%</span>
                   </div>
-                  <div className="category-item">
-                    <span>Boots</span>
-                    <div className="category-bar">
-                      <div className="bar-fill" style={{width: '10%'}}></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Boots</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-purple-600 h-2 rounded-full transition-all duration-300" style={{width: '10%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">10%</span>
                     </div>
-                    <span>10%</span>
                   </div>
                 </div>
               </div>
 
-              <div className="breakdown-card">
-                <h3>Payment Methods</h3>
-                <div className="payment-stats">
-                  <div className="payment-item">
-                    <span>Credit Card</span>
-                    <div className="payment-bar">
-                      <div className="bar-fill" style={{width: '45%'}}></div>
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Credit Card</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: '45%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">45%</span>
                     </div>
-                    <span>45%</span>
                   </div>
-                  <div className="payment-item">
-                    <span>Cash</span>
-                    <div className="payment-bar">
-                      <div className="bar-fill" style={{width: '35%'}}></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Cash</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: '35%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">35%</span>
                     </div>
-                    <span>35%</span>
                   </div>
-                  <div className="payment-item">
-                    <span>Mobile Pay</span>
-                    <div className="payment-bar">
-                      <div className="bar-fill" style={{width: '20%'}}></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">Mobile Pay</span>
+                    <div className="flex items-center gap-3 flex-1 mx-4">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-purple-600 h-2 rounded-full transition-all duration-300" style={{width: '20%'}}></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-600">20%</span>
                     </div>
-                    <span>20%</span>
                   </div>
                 </div>
               </div>
@@ -586,69 +607,73 @@ const Dashboard = () => {
         )}
 
         {activeTab === 'products' && (
-          <div className="products-section">
-            <div className="products-header">
-              <h2>Product Performance</h2>
-              <button className="export-btn" onClick={() => handleExportReport('products')}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Product Performance</h2>
+              <button className="btn btn-secondary" onClick={() => handleExportReport('products')}>
                 Export Product Data
               </button>
             </div>
 
-            <div className="products-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Product</th>
-                    <th>Sales</th>
-                    <th>Revenue</th>
-                    <th>Profit</th>
-                    <th>Category</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topProducts.map((product, index) => (
-                    <tr key={product.id}>
-                      <td>
-                        <span className={`rank-badge ${index < 3 ? 'top-three' : ''}`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td>{product.name}</td>
-                      <td>{product.sales}</td>
-                      <td>{formatCurrency(product.revenue)}</td>
-                      <td>{formatCurrency(product.profit)}</td>
-                      <td>{product.category}</td>
+            <div className="card">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {topProducts.map((product, index) => (
+                      <tr key={product.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                            index < 3 
+                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {index + 1}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.sales}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(product.revenue)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">{formatCurrency(product.profit)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="product-insights">
-              <div className="insight-card">
-                <h3>Best Performers</h3>
-                <div className="performer-list">
-                  <div className="performer-item">
-                    <span className="perf-icon">🏆</span>
-                    <div>
-                      <p>Nike Air Max 270</p>
-                      <small>Highest sales volume</small>
-                    </div>
+            <div className="card">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Best Performers</h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 p-4 bg-yellow-50 rounded-lg">
+                  <span className="text-2xl">🏆</span>
+                  <div>
+                    <p className="font-medium text-gray-900">Top Seller</p>
+                    <p className="text-sm text-gray-600">Nike Air Force 1 - 342 units sold</p>
                   </div>
-                  <div className="performer-item">
-                    <span className="perf-icon">💰</span>
-                    <div>
-                      <p>Adidas Ultra Boost</p>
-                      <small>Best profit margin</small>
-                    </div>
+                </div>
+                <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
+                  <span className="text-2xl">💰</span>
+                  <div>
+                    <p className="font-medium text-gray-900">Highest Revenue</p>
+                    <p className="text-sm text-gray-600">Adidas Ultra Boost - Rs. 485,000</p>
                   </div>
-                  <div className="performer-item">
-                    <span className="perf-icon">📈</span>
-                    <div>
-                      <p>Converse Chuck Taylor</p>
-                      <small>Fastest growing</small>
-                    </div>
+                </div>
+                <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
+                  <span className="text-2xl">📈</span>
+                  <div>
+                    <p className="font-medium text-gray-900">Best Profit Margin</p>
+                    <p className="text-sm text-gray-600">Vans Old Skool - 45% margin</p>
                   </div>
                 </div>
               </div>
@@ -657,82 +682,87 @@ const Dashboard = () => {
         )}
 
         {activeTab === 'customers' && (
-          <div className="customers-section">
-            <div className="customers-header">
-              <h2>Customer Insights</h2>
-              <button className="export-btn" onClick={() => handleExportReport('customers')}>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Customer Analytics</h2>
+              <button className="btn btn-secondary" onClick={() => handleExportReport('customers')}>
                 Export Customer Data
               </button>
             </div>
 
-            <div className="customer-analytics">
-              <div className="customer-tiers">
-                <h3>Customer Tiers Performance</h3>
-                <div className="tiers-grid">
-                  {customerData.map(tier => (
-                    <div key={tier.tier} className={`tier-card ${tier.tier.toLowerCase()}`}>
-                      <h4>{tier.tier}</h4>
-                      <div className="tier-stats">
-                        <div className="tier-stat">
-                          <span>Customers</span>
-                          <span>{tier.count}</span>
-                        </div>
-                        <div className="tier-stat">
-                          <span>Revenue</span>
-                          <span>{formatCurrency(tier.revenue)}</span>
-                        </div>
-                        <div className="tier-stat">
-                          <span>Avg Spend</span>
-                          <span>{formatCurrency(tier.avgSpend)}</span>
-                        </div>
-                      </div>
+            <div className="space-y-6">
+              <div className="card">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Tiers Distribution</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-800">45</div>
+                      <div className="text-sm text-yellow-600">Platinum Customers</div>
                     </div>
-                  ))}
+                  </div>
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-800">128</div>
+                      <div className="text-sm text-gray-600">Gold Customers</div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-orange-800">256</div>
+                      <div className="text-sm text-orange-600">Silver Customers</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="customer-insights-grid">
-                <div className="insight-card">
-                  <h3>Customer Behavior</h3>
-                  <div className="behavior-stats">
-                    <div className="behavior-item">
-                      <span>Repeat Purchase Rate</span>
-                      <span>68%</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Behavior</h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Average Purchase Value</span>
+                      <span className="font-semibold text-green-600">Rs. 12,450</span>
                     </div>
-                    <div className="behavior-item">
-                      <span>Average Order Frequency</span>
-                      <span>2.3 times/month</span>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-100">
+                      <span className="text-gray-600">Repeat Purchase Rate</span>
+                      <span className="font-semibold text-blue-600">68%</span>
                     </div>
-                    <div className="behavior-item">
-                      <span>Customer Lifetime Value</span>
-                      <span>Rs. 45,000</span>
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-gray-600">Customer Retention</span>
+                      <span className="font-semibold text-purple-600">78%</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="insight-card">
-                  <h3>Acquisition Channels</h3>
-                  <div className="channel-stats">
-                    <div className="channel-item">
-                      <span>Walk-in</span>
-                      <div className="channel-bar">
-                        <div className="bar-fill" style={{width: '60%'}}></div>
+                <div className="card">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Acquisition Channels</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Walk-in</span>
+                      <div className="flex items-center gap-3 flex-1 mx-4">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: '60%'}}></div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-600">60%</span>
                       </div>
-                      <span>60%</span>
                     </div>
-                    <div className="channel-item">
-                      <span>Social Media</span>
-                      <div className="channel-bar">
-                        <div className="bar-fill" style={{width: '25%'}}></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Social Media</span>
+                      <div className="flex items-center gap-3 flex-1 mx-4">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: '25%'}}></div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-600">25%</span>
                       </div>
-                      <span>25%</span>
                     </div>
-                    <div className="channel-item">
-                      <span>Referral</span>
-                      <div className="channel-bar">
-                        <div className="bar-fill" style={{width: '15%'}}></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Referrals</span>
+                      <div className="flex items-center gap-3 flex-1 mx-4">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2">
+                          <div className="bg-purple-600 h-2 rounded-full transition-all duration-300" style={{width: '15%'}}></div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-600">15%</span>
                       </div>
-                      <span>15%</span>
                     </div>
                   </div>
                 </div>
@@ -741,391 +771,247 @@ const Dashboard = () => {
           </div>
         )}
 
-        {activeTab === 'reports' && (
-          <div className="reports-section">
-            <div className="reports-header">
-              <h2>Reports & Analytics</h2>
-              <div className="report-controls">
-                <select className="report-filter">
-                  <option>All Reports</option>
-                  <option>Sales Reports</option>
-                  <option>Financial Reports</option>
-                  <option>Operational Reports</option>
+        {activeTab === 'reports' && !activeReport && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Business Reports</h2>
+              <div className="flex items-center gap-4">
+                <select className="form-input">
+                  <option>Last 7 days</option>
+                  <option>Last 30 days</option>
+                  <option>Last 90 days</option>
+                  <option>This year</option>
                 </select>
-                <button className="generate-report-btn">Generate Custom Report</button>
+                <button className="btn btn-primary">Generate Custom Report</button>
               </div>
             </div>
 
-            {!activeReport ? (
-              <div className="reports-grid">
-                <div className="report-card" onClick={() => setActiveReport('sales')}>
-                  <div className="report-icon">📊</div>
-                  <h3>Sales Report</h3>
-                  <p>Comprehensive sales analysis with trends, forecasts, and performance metrics</p>
-                  <div className="report-meta">
-                    <span>Last updated: 2 hours ago</span>
-                    <span>47 entries</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('sales')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">📊</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Sales Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Daily sales trends</p>
+                    <p>Revenue analysis</p>
                   </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('sales'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('profit')}>
-                  <div className="report-icon">💰</div>
-                  <h3>Profit Analysis</h3>
-                  <p>Detailed profit margins, cost analysis, and profitability insights</p>
-                  <div className="report-meta">
-                    <span>Last updated: 1 hour ago</span>
-                    <span>32 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('profit'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('inventory')}>
-                  <div className="report-icon">📦</div>
-                  <h3>Inventory Report</h3>
-                  <p>Stock levels, turnover rates, reorder alerts, and inventory optimization</p>
-                  <div className="report-meta">
-                    <span>Last updated: 30 minutes ago</span>
-                    <span>156 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('inventory'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('customers')}>
-                  <div className="report-icon">👥</div>
-                  <h3>Customer Analytics</h3>
-                  <p>Customer behavior, loyalty analysis, segmentation, and retention metrics</p>
-                  <div className="report-meta">
-                    <span>Last updated: 45 minutes ago</span>
-                    <span>200 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('customers'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('performance')}>
-                  <div className="report-icon">📈</div>
-                  <h3>Performance Dashboard</h3>
-                  <p>KPIs, benchmarks, performance metrics, and business intelligence</p>
-                  <div className="report-meta">
-                    <span>Last updated: 1 hour ago</span>
-                    <span>25 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('performance'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('marketing')}>
-                  <div className="report-icon">🎯</div>
-                  <h3>Marketing ROI</h3>
-                  <p>Campaign effectiveness, return on investment, and marketing analytics</p>
-                  <div className="report-meta">
-                    <span>Last updated: 3 hours ago</span>
-                    <span>18 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('marketing'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('financial')}>
-                  <div className="report-icon">💹</div>
-                  <h3>Financial Summary</h3>
-                  <p>Revenue breakdown, expense analysis, cash flow, and financial health</p>
-                  <div className="report-meta">
-                    <span>Last updated: 2 hours ago</span>
-                    <span>89 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('financial'); }}>
-                      Download CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="report-card" onClick={() => setActiveReport('operational')}>
-                  <div className="report-icon">⚙️</div>
-                  <h3>Operational Metrics</h3>
-                  <p>Process efficiency, resource utilization, and operational performance</p>
-                  <div className="report-meta">
-                    <span>Last updated: 1 hour ago</span>
-                    <span>63 entries</span>
-                  </div>
-                  <div className="report-actions">
-                    <button className="view-btn">View Details</button>
-                    <button className="download-btn" onClick={(e) => { e.stopPropagation(); handleExportReport('operational'); }}>
-                      Download CSV
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('sales'); }}>
+                      Download
                     </button>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="detailed-report">
-                <div className="report-header">
-                  <button className="back-btn" onClick={() => setActiveReport(null)}>← Back to Reports</button>
-                  <h3>{activeReport.charAt(0).toUpperCase() + activeReport.slice(1)} Report</h3>
-                  <button className="export-btn" onClick={() => handleExportReport(activeReport)}>Export Data</button>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('profit')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">💰</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Profit Analysis</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Profit margins</p>
+                    <p>Cost analysis</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('profit'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('inventory')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">📦</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Inventory Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Stock levels</p>
+                    <p>Reorder alerts</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('inventory'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('customers')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">👥</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Customer Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Customer insights</p>
+                    <p>Loyalty analysis</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('customers'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('performance')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">📈</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Performance Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>KPI tracking</p>
+                    <p>Goal achievement</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('performance'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('marketing')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">🎯</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Marketing Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Campaign results</p>
+                    <p>ROI analysis</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('marketing'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('financial')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">💹</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Financial Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Cash flow</p>
+                    <p>P&L statements</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('financial'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setActiveReport('operational')}>
+                <div className="text-center">
+                  <div className="text-4xl mb-3">⚙️</div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Operational Report</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <p>Efficiency metrics</p>
+                    <p>Process analysis</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="btn btn-primary text-xs py-1 px-3 flex-1">View Details</button>
+                    <button className="btn btn-outline text-xs py-1 px-3 flex-1" onClick={(e) => { e.stopPropagation(); handleExportReport('operational'); }}>
+                      Download
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'reports' && activeReport && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <button className="btn btn-outline" onClick={() => setActiveReport(null)}>← Back to Reports</button>
+              <h2 className="text-2xl font-bold text-gray-900 capitalize">{activeReport} Report</h2>
+              <button className="btn btn-primary" onClick={() => handleExportReport(activeReport)}>Export Data</button>
+            </div>
+
+            {activeReport === 'sales' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="card text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Sales</h3>
+                    <p className="text-3xl font-bold text-green-600">{formatCurrency(2450000)}</p>
+                  </div>
+                  <div className="card text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Units Sold</h3>
+                    <p className="text-3xl font-bold text-blue-600">1,235</p>
+                  </div>
+                  <div className="card text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Average Sale</h3>
+                    <p className="text-3xl font-bold text-purple-600">{formatCurrency(9850)}</p>
+                  </div>
                 </div>
 
-                {activeReport === 'sales' && (
-                  <div className="sales-report-detail">
-                    <div className="report-summary">
-                      <div className="summary-card">
-                        <h4>Total Sales</h4>
-                        <p>{formatCurrency(metrics.totalSales)}</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Growth Rate</h4>
-                        <p>+{metrics.salesGrowth.toFixed(1)}%</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Avg Daily</h4>
-                        <p>{formatCurrency(metrics.totalSales / 10)}</p>
-                      </div>
-                    </div>
-                    <div className="report-chart">
-                      <TrendChart data={getTrendData('sales')} title="Daily Sales Trend" color="#3498db" />
-                    </div>
-                    <div className="report-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Sales</th>
-                            <th>Orders</th>
-                            <th>Avg Order</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {salesData.map(day => (
-                            <tr key={day.date}>
-                              <td>{day.date}</td>
-                              <td>{formatCurrency(day.sales)}</td>
-                              <td>{day.orders}</td>
-                              <td>{formatCurrency(day.sales / day.orders)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                <div className="card">
+                  <TrendChart 
+                    data={getTrendData('sales')} 
+                    title="Sales Trend Analysis" 
+                    color="#3498db" 
+                  />
+                </div>
 
-                {activeReport === 'profit' && (
-                  <div className="profit-report-detail">
-                    <div className="report-summary">
-                      <div className="summary-card">
-                        <h4>Total Profit</h4>
-                        <p>{formatCurrency(metrics.totalProfit)}</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Profit Margin</h4>
-                        <p>{metrics.profitMargin.toFixed(1)}%</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Avg Daily</h4>
-                        <p>{formatCurrency(metrics.totalProfit / 10)}</p>
-                      </div>
-                    </div>
-                    <div className="report-chart">
-                      <TrendChart data={getTrendData('profit')} title="Daily Profit Trend" color="#27ae60" />
-                    </div>
-                    <div className="report-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Sales</th>
-                            <th>Profit</th>
-                            <th>Margin %</th>
+                <div className="card">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Units</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Average</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {getTrendData('sales').map((row, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(row.sales)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.units}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(row.average)}</td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {salesData.map(day => (
-                            <tr key={day.date}>
-                              <td>{day.date}</td>
-                              <td>{formatCurrency(day.sales)}</td>
-                              <td>{formatCurrency(day.profit)}</td>
-                              <td>{((day.profit / day.sales) * 100).toFixed(1)}%</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-
-                {activeReport === 'inventory' && (
-                  <div className="inventory-report-detail">
-                    <div className="report-summary">
-                      <div className="summary-card">
-                        <h4>Total Items</h4>
-                        <p>{inventoryData.length}</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Low Stock</h4>
-                        <p>{inventoryData.filter(item => item.status === 'low').length}</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Out of Stock</h4>
-                        <p>{inventoryData.filter(item => item.status === 'out').length}</p>
-                      </div>
-                    </div>
-                    <div className="report-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Product</th>
-                            <th>Stock</th>
-                            <th>Reorder Level</th>
-                            <th>Turnover</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {inventoryData.map(item => (
-                            <tr key={item.id}>
-                              <td>{item.product}</td>
-                              <td>{item.stock}</td>
-                              <td>{item.reorderLevel}</td>
-                              <td>{item.turnover}</td>
-                              <td>
-                                <span className={`status-badge ${item.status}`}>
-                                  {item.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {activeReport === 'customers' && (
-                  <div className="customers-report-detail">
-                    <div className="report-summary">
-                      <div className="summary-card">
-                        <h4>Total Customers</h4>
-                        <p>{customerData.reduce((sum, tier) => sum + tier.count, 0)}</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Premium Customers</h4>
-                        <p>{customerData.filter(tier => tier.tier === 'Platinum' || tier.tier === 'Gold').reduce((sum, tier) => sum + tier.count, 0)}</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Customer Revenue</h4>
-                        <p>{formatCurrency(customerData.reduce((sum, tier) => sum + tier.revenue, 0))}</p>
-                      </div>
-                    </div>
-                    <div className="report-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Tier</th>
-                            <th>Customers</th>
-                            <th>Revenue</th>
-                            <th>Avg Spend</th>
-                            <th>Contribution</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {customerData.map(tier => {
-                            const totalRevenue = customerData.reduce((sum, t) => sum + t.revenue, 0);
-                            const contribution = ((tier.revenue / totalRevenue) * 100).toFixed(1);
-                            return (
-                              <tr key={tier.tier}>
-                                <td>
-                                  <span className={`tier-badge ${tier.tier.toLowerCase()}`}>
-                                    {tier.tier}
-                                  </span>
-                                </td>
-                                <td>{tier.count}</td>
-                                <td>{formatCurrency(tier.revenue)}</td>
-                                <td>{formatCurrency(tier.avgSpend)}</td>
-                                <td>{contribution}%</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {(activeReport === 'performance' || activeReport === 'marketing' || activeReport === 'financial' || activeReport === 'operational') && (
-                  <div className="generic-report-detail">
-                    <div className="report-summary">
-                      <div className="summary-card">
-                        <h4>Data Points</h4>
-                        <p>Available Soon</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Analysis</h4>
-                        <p>In Progress</p>
-                      </div>
-                      <div className="summary-card">
-                        <h4>Insights</h4>
-                        <p>Coming Soon</p>
-                      </div>
-                    </div>
-                    <div className="report-placeholder">
-                      <h3>Report Under Development</h3>
-                      <p>This report is currently being developed and will be available soon with comprehensive analytics and insights.</p>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             )}
 
-            <div className="report-summary">
-              <h3>Report Summary</h3>
-              <div className="summary-stats">
-                <div className="summary-item">
-                  <span>Reports Generated</span>
-                  <span>47</span>
+            {activeReport === 'profit' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="card text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Gross Profit</h3>
+                    <p className="text-3xl font-bold text-green-600">{formatCurrency(735000)}</p>
+                  </div>
+                  <div className="card text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Net Profit</h3>
+                    <p className="text-3xl font-bold text-blue-600">{formatCurrency(420000)}</p>
+                  </div>
+                  <div className="card text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Profit Margin</h3>
+                    <p className="text-3xl font-bold text-purple-600">30%</p>
+                  </div>
                 </div>
-                <div className="summary-item">
-                  <span>Last Updated</span>
-                  <span>2 hours ago</span>
-                </div>
-                <div className="summary-item">
-                  <span>Auto-Schedule</span>
-                  <span>Weekly</span>
-                </div>
-                <div className="summary-item">
-                  <span>Export Format</span>
-                  <span>CSV, PDF</span>
+
+                <div className="card">
+                  <TrendChart 
+                    data={getTrendData('profit')} 
+                    title="Profit Trend Analysis" 
+                    color="#27ae60" 
+                  />
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
