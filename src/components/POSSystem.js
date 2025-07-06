@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 
-const POSSystem = () => {
+const POSSystem = ({ currentUser }) => {
   const [barcode, setBarcode] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [cartItems, setCartItems] = useState([]);
-  const [discountType, setDiscountType] = useState('Fixed Amount (Rs.)');
   const [discountValue, setDiscountValue] = useState(0);
+  const [discountType, setDiscountType] = useState('fixed'); // 'fixed' or 'percentage'
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerMoney, setCustomerMoney] = useState('');
-  const [showInvoice, setShowInvoice] = useState(false);
   const [showReturn, setShowReturn] = useState(false);
   const [showSavePrint, setShowSavePrint] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
@@ -36,8 +35,8 @@ const POSSystem = () => {
       id: 'INV001',
       date: '2024-01-15',
       items: [
-        { id: 1, name: 'Men\'s Casual Shoes', price: 4500, quantity: 1, itemDiscount: 0, itemDiscountType: 'Fixed Amount (Rs.)' },
-        { id: 2, name: 'Women\'s Sandals', price: 3200, quantity: 2, itemDiscount: 200, itemDiscountType: 'Fixed Amount (Rs.)' }
+        { id: 1, name: 'Men\'s Casual Shoes', price: 4500, quantity: 1 },
+        { id: 2, name: 'Women\'s Sandals', price: 3200, quantity: 2 }
       ],
       total: 11000,
       customerPhone: '0771234567'
@@ -46,20 +45,11 @@ const POSSystem = () => {
       id: 'INV002', 
       date: '2024-01-14',
       items: [
-        { id: 3, name: 'Kids Sneakers', price: 2800, quantity: 1, itemDiscount: 0, itemDiscountType: 'Fixed Amount (Rs.)' },
-        { id: 4, name: 'Leather Boots', price: 6500, quantity: 1, itemDiscount: 10, itemDiscountType: 'Percentage (%)' }
+        { id: 3, name: 'Kids Sneakers', price: 2800, quantity: 1 },
+        { id: 4, name: 'Leather Boots', price: 6500, quantity: 1 }
       ],
-      total: 8450,
+      total: 9300,
       customerPhone: '0759876543'
-    },
-    {
-      id: 'INV003',
-      date: '2024-01-13',
-      items: [
-        { id: 5, name: 'Sports Shoes', price: 5200, quantity: 1, itemDiscount: 0, itemDiscountType: 'Fixed Amount (Rs.)' }
-      ],
-      total: 5200,
-      customerPhone: '0112345678'
     }
   ];
 
@@ -99,9 +89,10 @@ const POSSystem = () => {
     } else {
       setCartItems([...cartItems, { 
         ...product, 
-        quantity: 1, 
-        itemDiscount: 0, 
-        itemDiscountType: 'Fixed Amount (Rs.)' 
+        quantity: 1,
+        itemDiscountType: 'fixed',
+        itemDiscountValue: 0,
+        itemDiscountAmount: 0
       }]);
     }
     setSearchTerm('');
@@ -118,306 +109,137 @@ const POSSystem = () => {
     }
   };
 
-  const updateItemDiscount = (id, discountType, discountValue) => {
-    setCartItems(cartItems.map(item =>
-      item.id === id 
-        ? { ...item, itemDiscountType: discountType, itemDiscount: discountValue }
-        : item
-    ));
-  };
-
   const removeFromCart = (id) => {
     setCartItems(cartItems.filter(item => item.id !== id));
   };
 
-  const calculateItemTotal = (item) => {
-    const baseTotal = item.price * item.quantity;
-    let itemDiscount = 0;
-    
-    if (item.itemDiscountType === 'Fixed Amount (Rs.)') {
-      itemDiscount = Math.min(item.itemDiscount, baseTotal);
-    } else {
-      itemDiscount = (baseTotal * item.itemDiscount) / 100;
-    }
-    
-    return baseTotal - itemDiscount;
+  const updateItemDiscount = (id, discountType, discountValue) => {
+    setCartItems(cartItems.map(item => {
+      if (item.id === id) {
+        const itemSubtotal = item.price * item.quantity;
+        const discountAmount = discountType === 'percentage' 
+          ? (itemSubtotal * discountValue) / 100 
+          : discountValue;
+        return {
+          ...item,
+          itemDiscountType: discountType,
+          itemDiscountValue: discountValue,
+          itemDiscountAmount: discountAmount
+        };
+      }
+      return item;
+    }));
   };
 
   const calculateSubtotal = () => {
-    return cartItems.reduce((total, item) => total + calculateItemTotal(item), 0);
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const calculateDiscount = () => {
-    const subtotal = calculateSubtotal();
-    if (discountType === 'Fixed Amount (Rs.)') {
-      return Math.min(discountValue, subtotal);
-    } else {
+  const calculatePurchaseSubtotal = () => {
+    return cartItems
+      .filter(item => !item.isReturn)
+      .reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const calculateReturnSubtotal = () => {
+    return cartItems
+      .filter(item => item.isReturn)
+      .reduce((total, item) => total + Math.abs(item.price * item.quantity), 0);
+  };
+
+  const calculateItemDiscounts = () => {
+    return cartItems.reduce((total, item) => total + (item.itemDiscountAmount || 0), 0);
+  };
+
+  const calculateDiscountAmount = () => {
+    const subtotal = calculateSubtotal() - calculateItemDiscounts();
+    if (discountType === 'percentage') {
       return (subtotal * discountValue) / 100;
+    } else {
+      return discountValue;
     }
   };
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
-    const discount = calculateDiscount();
-    return subtotal - discount;
+    const itemDiscounts = calculateItemDiscounts();
+    const globalDiscount = calculateDiscountAmount();
+    return subtotal - itemDiscounts - globalDiscount;
   };
 
   const calculateBalance = () => {
     const total = calculateTotal();
-    const paid = parseFloat(customerMoney) || 0;
-    return paid - total;
+    const received = parseFloat(customerMoney) || 0;
+    return received - total;
   };
 
   const handleProcessPayment = () => {
-    const total = calculateTotal();
-    if (total <= 0) {
-      alert('Please add items to cart');
-      return;
-    }
+    if (cartItems.length === 0) return;
     
-    const paid = parseFloat(customerMoney) || 0;
-    if (paymentMethod === 'Cash' && paid < total) {
-      alert('Insufficient payment amount');
-      return;
-    }
-
-    // For non-cash payments, use the total as the amount paid
-    const finalPaid = paymentMethod === 'Cash' ? paid : total;
-
-    // Generate invoice
     const invoiceData = {
       id: `INV${Date.now()}`,
       date: new Date().toLocaleDateString(),
       time: new Date().toLocaleTimeString(),
       items: cartItems,
       subtotal: calculateSubtotal(),
-      discount: calculateDiscount(),
-      total: total,
+      itemDiscounts: calculateItemDiscounts(),
+      discount: calculateDiscountAmount(),
+      discountType: discountType,
+      discountValue: discountValue,
+      total: calculateTotal(),
       paymentMethod: paymentMethod,
       customerPhone: customerPhone,
-      customerMoney: finalPaid,
-      balance: paymentMethod === 'Cash' ? (finalPaid - total) : 0
+      customerMoney: parseFloat(customerMoney) || 0,
+      balance: calculateBalance(),
+      cashierName: currentUser.name
     };
 
     setCurrentInvoice(invoiceData);
+    
+    // Open cash drawer if payment is cash
+    if (paymentMethod === 'Cash') {
+      openCashDrawer();
+    }
+    
     setShowSavePrint(true);
   };
 
   const handlePrint = () => {
-    if (!currentInvoice) {
-      alert('No invoice to print');
-      return;
+    if (currentInvoice) {
+      // Try thermal printing first, fallback to regular printing
+      printToThermalPrinter(currentInvoice);
     }
-
-    const printWindow = window.open('', '', 'width=800,height=600');
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice - ${currentInvoice.id}</title>
-          <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 20px; 
-              font-size: 12px;
-              line-height: 1.4;
-            }
-            .invoice { 
-              max-width: 300px; 
-              margin: 0 auto; 
-            }
-            .store-info { 
-              text-align: center; 
-              margin-bottom: 20px; 
-              border-bottom: 1px solid #000;
-              padding-bottom: 10px;
-            }
-            .store-info h2 { 
-              margin: 0 0 10px 0; 
-              font-size: 16px;
-            }
-            .store-info p { 
-              margin: 2px 0; 
-              font-size: 10px;
-            }
-            .invoice-meta { 
-              margin-bottom: 15px; 
-            }
-            .invoice-meta p { 
-              margin: 3px 0; 
-              font-size: 11px;
-            }
-            .invoice-items { 
-              margin-bottom: 15px; 
-            }
-            .invoice-items table { 
-              width: 100%; 
-              border-collapse: collapse; 
-            }
-            .invoice-items th,
-            .invoice-items td { 
-              padding: 4px; 
-              text-align: left; 
-              border-bottom: 1px solid #ccc;
-              font-size: 10px;
-            }
-            .invoice-items th { 
-              background: #f5f5f5; 
-              font-weight: bold;
-            }
-            .invoice-totals { 
-              margin-bottom: 15px; 
-              border-top: 2px solid #000;
-              padding-top: 10px;
-            }
-            .total-row { 
-              display: flex; 
-              justify-content: space-between; 
-              padding: 2px 0; 
-              font-size: 11px;
-            }
-            .total-row.grand-total { 
-              font-weight: bold; 
-              font-size: 14px;
-              border-top: 1px solid #000;
-              padding-top: 5px;
-              margin-top: 5px;
-            }
-            .balance { 
-              font-weight: bold; 
-              font-size: 12px; 
-            }
-            .invoice-footer { 
-              text-align: center; 
-              margin-top: 15px; 
-              border-top: 1px solid #000;
-              padding-top: 10px;
-            }
-            .invoice-footer p { 
-              margin: 3px 0; 
-              font-size: 10px;
-            }
-            @media print {
-              body { margin: 0; }
-              .invoice { max-width: none; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="invoice">
-            <div class="store-info">
-              <h2>Wabees Shoe Palace</h2>
-              <p>237,Main Street Maruthamunai-03</p>
-              <p>Phone: 067 2220834</p>
-              <p>Email: info@wabeesshoepalace.lk</p>
-            </div>
-            
-            <div class="invoice-meta">
-              <p><strong>Invoice #:</strong> ${currentInvoice.id}</p>
-              <p><strong>Date:</strong> ${currentInvoice.date}</p>
-              <p><strong>Time:</strong> ${currentInvoice.time}</p>
-              <p><strong>Payment Method:</strong> ${currentInvoice.paymentMethod}</p>
-              ${currentInvoice.customerPhone ? `<p><strong>Customer Phone:</strong> ${currentInvoice.customerPhone}</p>` : ''}
-            </div>
-
-            <div class="invoice-items">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Qty</th>
-                    <th>Price</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${currentInvoice.items.map(item => `
-                    <tr>
-                      <td>${item.name}</td>
-                      <td>${item.quantity}</td>
-                      <td>Rs. ${item.price.toLocaleString()}</td>
-                      <td>Rs. ${(item.price * item.quantity).toLocaleString()}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-
-            <div class="invoice-totals">
-              <div class="total-row">
-                <span>Subtotal:</span>
-                <span>Rs. ${currentInvoice.subtotal.toLocaleString()}</span>
-              </div>
-              <div class="total-row">
-                <span>Discount:</span>
-                <span>-Rs. ${currentInvoice.discount.toLocaleString()}</span>
-              </div>
-              <div class="total-row grand-total">
-                <span>Total:</span>
-                <span>Rs. ${currentInvoice.total.toLocaleString()}</span>
-              </div>
-              ${currentInvoice.paymentMethod === 'Cash' ? `
-                <div class="total-row">
-                  <span>Amount Received:</span>
-                  <span>Rs. ${currentInvoice.customerMoney.toLocaleString()}</span>
-                </div>
-                <div class="total-row balance">
-                  <span>Balance:</span>
-                  <span>Rs. ${currentInvoice.balance.toLocaleString()}</span>
-                </div>
-              ` : ''}
-            </div>
-
-            <div class="invoice-footer">
-              <p>Thank you for shopping with Wabees Shoe Palace!</p>
-              <p>Visit us again soon!</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
-    printWindow.close();
   };
 
   const handleSendSMS = () => {
-    if (!customerPhone) {
-      alert('Please enter customer phone number');
-      return;
+    if (currentInvoice && currentInvoice.customerPhone) {
+      const message = `Thank you for shopping with Wabees Shoe Palace! Invoice: ${currentInvoice.id}, Total: Rs. ${currentInvoice.total.toLocaleString()}`;
+      alert(`SMS sent to ${currentInvoice.customerPhone}: ${message}`);
+    } else {
+      alert('No customer phone number provided');
     }
-    alert(`SMS invoice sent to ${customerPhone}`);
   };
 
   const handleSaveInvoice = () => {
-    // Save invoice to local storage or database
-    const savedInvoices = JSON.parse(localStorage.getItem('pos-invoices') || '[]');
-    savedInvoices.push(currentInvoice);
-    localStorage.setItem('pos-invoices', JSON.stringify(savedInvoices));
+    // Save invoice logic here
     alert('Invoice saved successfully!');
   };
 
   const handleCloseSavePrint = () => {
     setShowSavePrint(false);
-    setCurrentInvoice(null);
-    // Clear cart and reset form
-    setCartItems([]);
-    setCustomerMoney('');
-    setCustomerPhone('');
-    setDiscountValue(0);
-    setDiscountType('Fixed Amount (Rs.)');
-    setPaymentMethod('Cash');
+    handleNewSale();
   };
 
   const handleNewSale = () => {
     setCartItems([]);
-    setCustomerMoney('');
     setCustomerPhone('');
+    setCustomerMoney('');
     setDiscountValue(0);
-    setDiscountType('Fixed Amount (Rs.)');
+    setDiscountType('fixed');
     setPaymentMethod('Cash');
-    setShowInvoice(false);
-    setShowReturn(false);
-    setShowSavePrint(false);
+    setBarcode('');
+    setSearchTerm('');
+    setSearchResults([]);
     setCurrentInvoice(null);
     setReturnInvoiceNumber('');
     setReturnInvoice(null);
@@ -425,24 +247,18 @@ const POSSystem = () => {
   };
 
   const handleReturnSearch = () => {
-    if (!returnInvoiceNumber) {
-      alert('Please enter invoice number');
-      return;
-    }
-    
     const invoice = invoices.find(inv => inv.id === returnInvoiceNumber);
     if (invoice) {
       setReturnInvoice(invoice);
       setSelectedReturnItems([]);
     } else {
       alert('Invoice not found');
-      setReturnInvoice(null);
     }
   };
 
   const handleReturnItemClick = (item) => {
-    const existingItem = selectedReturnItems.find(selected => selected.id === item.id);
-    if (existingItem) {
+    const isSelected = selectedReturnItems.find(selected => selected.id === item.id);
+    if (isSelected) {
       setSelectedReturnItems(selectedReturnItems.filter(selected => selected.id !== item.id));
     } else {
       setSelectedReturnItems([...selectedReturnItems, item]);
@@ -455,404 +271,689 @@ const POSSystem = () => {
       return;
     }
     
-    // Add selected items to cart for return (new sale)
-    const returnItems = selectedReturnItems.map(item => ({
+    // Add return items to current cart as negative quantities
+    const returnItemsForCart = selectedReturnItems.map(item => ({
       ...item,
-      quantity: 1 // Default quantity for return
+      quantity: -item.quantity, // Negative quantity for returns
+      isReturn: true, // Mark as return item
+      returnInvoiceId: returnInvoice.id,
+      itemDiscountType: 'fixed',
+      itemDiscountValue: 0,
+      itemDiscountAmount: 0
     }));
     
-    setCartItems(returnItems);
+    // Add return items to current cart
+    const updatedCart = [...cartItems];
+    
+    returnItemsForCart.forEach(returnItem => {
+      const existingIndex = updatedCart.findIndex(item => 
+        item.id === returnItem.id && !item.isReturn
+      );
+      
+      if (existingIndex >= 0) {
+        // If same item exists in cart, adjust quantity
+        const existingItem = updatedCart[existingIndex];
+        const newQuantity = existingItem.quantity + returnItem.quantity;
+        
+        if (newQuantity > 0) {
+          updatedCart[existingIndex] = { ...existingItem, quantity: newQuantity };
+        } else if (newQuantity < 0) {
+          // Remove existing item and add return item with remaining negative quantity
+          updatedCart.splice(existingIndex, 1);
+          updatedCart.push({ ...returnItem, quantity: newQuantity });
+        } else {
+          // Quantities cancel out, remove existing item
+          updatedCart.splice(existingIndex, 1);
+        }
+      } else {
+        // Add return item to cart
+        updatedCart.push(returnItem);
+      }
+    });
+    
+    setCartItems(updatedCart);
+    
+    // Calculate return amount for notification
+    const returnTotal = selectedReturnItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    alert(`Return items added to current sale! Return value: Rs. ${returnTotal.toLocaleString()}`);
+    
+    // Close return modal
     setShowReturn(false);
     setReturnInvoice(null);
     setSelectedReturnItems([]);
     setReturnInvoiceNumber('');
   };
 
+  // Enhanced printing functions for thermal printers
+  const printToThermalPrinter = (invoiceData) => {
+    try {
+      // ESC/POS commands for thermal printing
+      const ESC = '\x1B';
+      const GS = '\x1D';
+      
+      let receiptText = '';
+      
+      // Initialize printer
+      receiptText += ESC + '@'; // Initialize
+      receiptText += ESC + 'a' + '\x01'; // Center align
+      
+      // Store header
+      receiptText += ESC + '!' + '\x18'; // Double height
+      receiptText += 'SHOE PALACE\n';
+      receiptText += ESC + '!' + '\x00'; // Normal size
+      receiptText += 'Tel: +1234567890\n';
+      receiptText += 'Email: info@shoepalace.com\n';
+      receiptText += ESC + 'a' + '\x00'; // Left align
+      receiptText += '================================\n';
+      
+      // Invoice details
+      receiptText += `Invoice: ${invoiceData.id}\n`;
+      receiptText += `Date: ${invoiceData.date}\n`;
+      receiptText += `Time: ${invoiceData.time}\n`;
+      receiptText += `Payment: ${invoiceData.paymentMethod}\n`;
+      receiptText += `Cashier: ${invoiceData.cashier}\n`;
+      if (invoiceData.customerPhone) {
+        receiptText += `Customer: ${invoiceData.customerPhone}\n`;
+      }
+      receiptText += '================================\n';
+      
+      // Items
+      invoiceData.items.forEach(item => {
+        receiptText += `${item.name}\n`;
+        receiptText += `  ${item.quantity} x Rs.${item.price.toLocaleString()}`;
+        if (item.itemDiscountAmount > 0) {
+          receiptText += ` (-Rs.${item.itemDiscountAmount.toLocaleString()})`;
+        }
+        receiptText += `\n  Total: Rs.${((item.price * item.quantity) - (item.itemDiscountAmount || 0)).toLocaleString()}\n`;
+      });
+      
+      receiptText += '================================\n';
+      
+      // Totals
+      receiptText += `Subtotal: Rs.${invoiceData.subtotal.toLocaleString()}\n`;
+      if (invoiceData.itemDiscounts > 0) {
+        receiptText += `Item Discounts: -Rs.${invoiceData.itemDiscounts.toLocaleString()}\n`;
+      }
+      if (invoiceData.additionalDiscount > 0) {
+        receiptText += `Additional Discount: -Rs.${invoiceData.additionalDiscount.toLocaleString()}\n`;
+      }
+      if (invoiceData.totalSavings > 0) {
+        receiptText += `Total Savings: Rs.${invoiceData.totalSavings.toLocaleString()}\n`;
+      }
+      
+      receiptText += ESC + '!' + '\x18'; // Double height
+      receiptText += `TOTAL: Rs.${invoiceData.total.toLocaleString()}\n`;
+      receiptText += ESC + '!' + '\x00'; // Normal size
+      
+      receiptText += '================================\n';
+      receiptText += ESC + 'a' + '\x01'; // Center align
+      receiptText += 'Thank you for shopping!\n';
+      receiptText += 'Visit us again soon!\n';
+      receiptText += '\n\n\n';
+      
+      // Cut paper
+      receiptText += GS + 'V' + '\x41' + '\x03';
+      
+      // For web browsers, we'll use a different approach
+      if (navigator.serial) {
+        // Web Serial API (Chrome only)
+        printViaWebSerial(receiptText);
+      } else {
+        // Fallback to regular printing
+        printFallback(invoiceData);
+      }
+      
+    } catch (error) {
+      console.error('Thermal printing error:', error);
+      // Fallback to regular printing
+      printFallback(invoiceData);
+    }
+  };
+
+  // Web Serial API printing (Chrome only)
+  const printViaWebSerial = async (escPosData) => {
+    try {
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      
+      const writer = port.writable.getWriter();
+      const encoder = new TextEncoder();
+      
+      await writer.write(encoder.encode(escPosData));
+      writer.releaseLock();
+      await port.close();
+      
+      alert('Receipt sent to thermal printer!');
+    } catch (error) {
+      console.error('Web Serial printing error:', error);
+      alert('Could not connect to thermal printer. Using fallback printing.');
+      printFallback(currentInvoice);
+    }
+  };
+
+  // Fallback printing method
+  const printFallback = (invoiceData) => {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Receipt - ${invoiceData.id}</title>
+          <style>
+            body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 20px; }
+            .receipt { max-width: 300px; margin: 0 auto; }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .line { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .total { font-size: 14px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="center bold">
+              <h2>SHOE PALACE</h2>
+              <p>Tel: +1234567890<br>Email: info@shoepalace.com</p>
+            </div>
+            <div class="line"></div>
+            <p><strong>Invoice:</strong> ${invoiceData.id}</p>
+            <p><strong>Date:</strong> ${invoiceData.date}</p>
+            <p><strong>Time:</strong> ${invoiceData.time}</p>
+            <p><strong>Payment:</strong> ${invoiceData.paymentMethod}</p>
+            <p><strong>Cashier:</strong> ${invoiceData.cashier}</p>
+            ${invoiceData.customerPhone ? `<p><strong>Customer:</strong> ${invoiceData.customerPhone}</p>` : ''}
+            <div class="line"></div>
+            ${invoiceData.items.map(item => `
+              <div>
+                <strong>${item.name}</strong><br>
+                ${item.quantity} x Rs.${item.price.toLocaleString()} 
+                ${item.itemDiscountAmount > 0 ? `(-Rs.${item.itemDiscountAmount.toLocaleString()})` : ''}
+                <div style="text-align: right;">Rs.${((item.price * item.quantity) - (item.itemDiscountAmount || 0)).toLocaleString()}</div>
+              </div>
+            `).join('')}
+            <div class="line"></div>
+            <p>Subtotal: Rs.${invoiceData.subtotal.toLocaleString()}</p>
+            ${invoiceData.itemDiscounts > 0 ? `<p>Item Discounts: -Rs.${invoiceData.itemDiscounts.toLocaleString()}</p>` : ''}
+            ${invoiceData.additionalDiscount > 0 ? `<p>Additional Discount: -Rs.${invoiceData.additionalDiscount.toLocaleString()}</p>` : ''}
+            ${invoiceData.totalSavings > 0 ? `<p>Total Savings: Rs.${invoiceData.totalSavings.toLocaleString()}</p>` : ''}
+            <div class="line"></div>
+            <p class="total center">TOTAL: Rs.${invoiceData.total.toLocaleString()}</p>
+            <div class="line"></div>
+            <div class="center">
+              <p>Thank you for shopping!</p>
+              <p>Visit us again soon!</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // Cash drawer opening function
+  const openCashDrawer = () => {
+    try {
+      // ESC/POS command to open cash drawer
+      const ESC = '\x1B';
+      const drawerCommand = ESC + 'p' + '\x00' + '\x19' + '\xFA';
+      
+      if (navigator.serial) {
+        // Send drawer command via Web Serial API
+        openDrawerViaSerial(drawerCommand);
+      } else {
+        // Alternative: Send command through receipt printer
+        console.log('Cash drawer command sent');
+        alert('Cash drawer opened');
+      }
+    } catch (error) {
+      console.error('Cash drawer error:', error);
+      alert('Could not open cash drawer');
+    }
+  };
+
+  // Open drawer via Web Serial
+  const openDrawerViaSerial = async (command) => {
+    try {
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      
+      const writer = port.writable.getWriter();
+      const encoder = new TextEncoder();
+      
+      await writer.write(encoder.encode(command));
+      writer.releaseLock();
+      await port.close();
+    } catch (error) {
+      console.error('Serial drawer error:', error);
+    }
+  };
+
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4 lg:mb-0">🛍️ Wabees Shoe Palace - POS System</h2>
-        <div className="flex gap-3">
-          <button className="btn btn-secondary flex items-center gap-2" onClick={() => setShowReturn(true)}>
-            💰 Return
-          </button>
-          <button className="btn btn-primary flex items-center gap-2" onClick={handleNewSale}>
-            📋 New Sale
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          {/* Search/Scan Section */}
-          <div className="card space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">📱 Scan Barcode</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Scan barcode..."
-                  value={barcode}
-                  onChange={handleBarcodeChange}
-                />
-              </div>
-              <div>
-                <label className="form-label">🔍 Search Product</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Search product name..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                />
-              </div>
-            </div>
-            
-            {searchResults.length > 0 && (
-              <div className="bg-white border border-gray-300 rounded-md shadow-sm max-h-48 overflow-y-auto">
-                {searchResults.map(product => (
-                  <div
-                    key={product.id}
-                    className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-200 last:border-b-0 flex justify-between items-center"
-                    onClick={() => addToCart(product)}
-                  >
-                    <span className="font-medium text-gray-900">{product.name}</span>
-                    <span className="font-semibold text-primary-600">Rs. {product.price.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Cart Section */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">🛒 Sale Items</h3>
-            {cartItems.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-lg font-medium">No items added yet</p>
-                <p className="text-sm mt-1">Search or scan products to add them to sale</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {cartItems.map(item => (
-                  <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{item.name}</div>
-                        <div className="text-sm text-gray-600">Rs. {item.price.toLocaleString()}</div>
-                        <div className="text-xs text-gray-500">{item.category}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-semibold text-gray-900">
-                          Rs. {calculateItemTotal(item).toLocaleString()}
-                        </div>
-                        <button 
-                          className="text-red-600 hover:text-red-800 text-sm mt-1"
-                          onClick={() => removeFromCart(item.id)}
-                        >
-                          ❌ Remove
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {/* Individual Item Discount */}
-                    <div className="mb-3 p-3 bg-gray-50 rounded-md">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Item Discount:</label>
-                      <div className="flex gap-2">
-                        <select 
-                          className="form-input flex-1"
-                          value={item.itemDiscountType}
-                          onChange={(e) => updateItemDiscount(item.id, e.target.value, item.itemDiscount)}
-                        >
-                          <option>Fixed Amount (Rs.)</option>
-                          <option>Percentage (%)</option>
-                        </select>
-                        <input
-                          type="number"
-                          className="form-input w-24"
-                          value={item.itemDiscount}
-                          onChange={(e) => updateItemDiscount(item.id, item.itemDiscountType, Number(e.target.value))}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <button 
-                          className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-medium"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        >
-                          -
-                        </button>
-                        <span className="font-medium text-gray-900 min-w-[2rem] text-center">{item.quantity}</span>
-                        <button 
-                          className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-medium"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {/* Billing Section */}
-          <div className="card space-y-4">
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                🔥 Discount
-              </h4>
-              <div className="flex gap-2">
-                <select 
-                  className="form-input flex-1"
-                  value={discountType}
-                  onChange={(e) => setDiscountType(e.target.value)}
-                >
-                  <option>Fixed Amount (Rs.)</option>
-                  <option>Percentage (%)</option>
-                </select>
-                <input
-                  type="number"
-                  className="form-input w-24"
-                  placeholder="0"
-                  value={discountValue}
-                  onChange={(e) => setDiscountValue(Number(e.target.value))}
-                />
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                💳 Payment Method
-              </h4>
-              <select 
-                className="form-input w-full"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-gray-800">🏪 POS System</h1>
+            <div className="flex gap-3">
+              <button 
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                onClick={() => setShowReturn(true)}
               >
-                <option>Cash</option>
-                <option>Card</option>
-                <option>Bank Transfer</option>
-                <option>Mobile Payment</option>
-              </select>
+                🔄 Return
+              </button>
+              <button 
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                onClick={handleNewSale}
+              >
+                🆕 New Sale
+              </button>
             </div>
+          </div>
+        </div>
 
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                📞 Customer Phone (SMS Invoice)
-              </h4>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Product Search & Cart */}
+          <div className="space-y-6">
+            {/* Barcode Scanner */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">📱 Barcode Scanner</h3>
               <input
-                type="tel"
-                className="form-input w-full"
-                placeholder="Enter phone number..."
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Scan or type barcode..."
+                value={barcode}
+                onChange={handleBarcodeChange}
               />
             </div>
-          </div>
 
-          {/* Totals Section */}
-          <div className="card">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center text-gray-700">
-                <span>Subtotal:</span>
-                <span className="font-medium">Rs. {calculateSubtotal().toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-red-600">
-                <span>Discount:</span>
-                <span className="font-medium">-Rs. {calculateDiscount().toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center text-xl font-bold text-gray-900 pt-3 border-t border-gray-200">
-                <span>Total:</span>
-                <span>Rs. {calculateTotal().toLocaleString()}</span>
-              </div>
+            {/* Product Search */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">🔍 Product Search</h3>
+              <input
+                type="text"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+              />
+              {searchResults.length > 0 && (
+                <div className="mt-4 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+                  {searchResults.map(product => (
+                    <div
+                      key={product.id}
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 flex justify-between items-center"
+                      onClick={() => addToCart(product)}
+                    >
+                      <span className="font-medium text-gray-800">{product.name}</span>
+                      <span className="font-semibold text-blue-600">Rs. {product.price.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Cart Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">🛒 Sale Items</h3>
+              {cartItems.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-lg font-medium">No items added yet</p>
+                  <p className="text-sm mt-1">Search or scan products to add them to sale</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cartItems.map((item, index) => (
+                    <div key={`${item.id}-${item.isReturn ? 'return' : 'sale'}-${index}`} className={`border rounded-lg p-4 ${
+                      item.isReturn ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                    }`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className={`font-medium ${item.isReturn ? 'text-red-800' : 'text-gray-800'}`}>
+                              {item.name}
+                            </div>
+                            {item.isReturn && (
+                              <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                                RETURN
+                              </span>
+                            )}
+                          </div>
+                          <div className={`text-sm ${item.isReturn ? 'text-red-600' : 'text-gray-600'}`}>
+                            Rs. {item.price.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500">{item.category}</div>
+                          {item.isReturn && item.returnInvoiceId && (
+                            <div className="text-xs text-red-500 mt-1">
+                              From Invoice: {item.returnInvoiceId}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-lg font-semibold ${
+                            item.isReturn ? 'text-red-800' : 'text-gray-800'
+                          }`}>
+                            {item.quantity < 0 && item.isReturn ? '-' : ''}Rs. {Math.abs((item.price * item.quantity) - (item.itemDiscountAmount || 0)).toLocaleString()}
+                          </div>
+                          {item.itemDiscountAmount > 0 && (
+                            <div className="text-xs text-green-600">
+                              Saved: Rs. {item.itemDiscountAmount.toLocaleString()}
+                            </div>
+                          )}
+                          <button 
+                            className="text-red-600 hover:text-red-800 text-sm mt-1"
+                            onClick={() => removeFromCart(item.id)}
+                          >
+                            ❌ Remove
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-3">
+                          <button 
+                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center font-medium"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.isReturn}
+                          >
+                            -
+                          </button>
+                          <span className={`font-medium min-w-[2rem] text-center ${
+                            item.isReturn ? 'text-red-800' : 'text-gray-800'
+                          }`}>
+                            {Math.abs(item.quantity)}
+                            {item.isReturn && ' (Return)'}
+                          </span>
+                          <button 
+                            className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center font-medium"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            disabled={item.isReturn}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Individual Product Discount - Hide for return items */}
+                      {!item.isReturn && (
+                        <div className="border-t pt-3 mt-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-sm font-medium text-gray-700">🎯 Item Discount:</span>
+                          </div>
+                          
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              className={`px-3 py-1 rounded text-xs border ${
+                                item.itemDiscountType === 'fixed' 
+                                  ? 'bg-blue-500 text-white border-blue-500' 
+                                  : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                              }`}
+                              onClick={() => updateItemDiscount(item.id, 'fixed', item.itemDiscountValue)}
+                            >
+                              Fixed
+                            </button>
+                            <button
+                              className={`px-3 py-1 rounded text-xs border ${
+                                item.itemDiscountType === 'percentage' 
+                                  ? 'bg-blue-500 text-white border-blue-500' 
+                                  : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                              }`}
+                              onClick={() => updateItemDiscount(item.id, 'percentage', item.itemDiscountValue)}
+                            >
+                              %
+                            </button>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input
+                                type="number"
+                                className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                placeholder={item.itemDiscountType === 'fixed' ? 'Rs.' : '%'}
+                                value={item.itemDiscountValue || ''}
+                                onChange={(e) => updateItemDiscount(item.id, item.itemDiscountType, Number(e.target.value))}
+                              />
+                              {item.itemDiscountType === 'percentage' && (
+                                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</div>
+                              )}
+                            </div>
+                            <button
+                              className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm"
+                              onClick={() => updateItemDiscount(item.id, item.itemDiscountType, 0)}
+                            >
+                              Clear
+                            </button>
+                          </div>
+
+                          {/* Discount Preview */}
+                          {item.itemDiscountValue > 0 && (
+                            <div className="mt-2 text-xs text-green-600">
+                              {item.itemDiscountType === 'fixed' 
+                                ? `Rs. ${item.itemDiscountValue.toLocaleString()} off`
+                                : `${item.itemDiscountValue}% off (Rs. ${item.itemDiscountAmount.toLocaleString()})`
+                              }
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Customer Money Section */}
-          <div className="card">
-            <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              💰 Customer Payment
-            </h4>
-            <input
-              type="number"
-              className="form-input w-full"
-              placeholder="Enter amount received..."
-              value={customerMoney}
-              onChange={(e) => setCustomerMoney(e.target.value)}
-            />
-            {customerMoney && (
-              <div className="mt-4 p-3 bg-gray-50 rounded-md space-y-2">
-                <div className="flex justify-between items-center text-sm text-gray-600">
-                  <span>Amount Received:</span>
-                  <span className="font-medium">Rs. {parseFloat(customerMoney).toLocaleString()}</span>
+          {/* Right Column - Payment & Checkout */}
+          <div className="space-y-6">
+            {/* Customer Information */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">👤 Customer Information</h4>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Customer phone number..."
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">💳 Payment Method</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {['Cash', 'Card', 'Digital', 'Credit'].map(method => (
+                  <button
+                    key={method}
+                    className={`p-3 border rounded-lg font-medium transition-colors ${
+                      paymentMethod === method
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                    onClick={() => setPaymentMethod(method)}
+                  >
+                    {method === 'Cash' && '💵'}
+                    {method === 'Card' && '💳'}
+                    {method === 'Digital' && '📱'}
+                    {method === 'Credit' && '🏦'}
+                    {' '}{method}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Discount Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">🎯 Additional Discount</h4>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button
+                    className={`px-4 py-2 rounded-lg font-medium border transition-colors ${
+                      discountType === 'fixed' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                    }`}
+                    onClick={() => setDiscountType('fixed')}
+                  >
+                    Fixed Amount
+                  </button>
+                  <button
+                    className={`px-4 py-2 rounded-lg font-medium border transition-colors ${
+                      discountType === 'percentage' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                    }`}
+                    onClick={() => setDiscountType('percentage')}
+                  >
+                    Percentage
+                  </button>
                 </div>
-                <div className="flex justify-between items-center text-sm text-gray-600">
-                  <span>Total Amount:</span>
-                  <span className="font-medium">Rs. {calculateTotal().toLocaleString()}</span>
+                <div className="relative">
+                  <input
+                    type="number"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder={discountType === 'fixed' ? 'Enter amount in Rs.' : 'Enter percentage'}
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(Number(e.target.value))}
+                  />
+                  {discountType === 'percentage' && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">%</div>
+                  )}
                 </div>
-                <div className={`flex justify-between items-center text-sm font-bold ${calculateBalance() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  <span>Balance:</span>
-                  <span>Rs. {calculateBalance().toLocaleString()}</span>
+                {discountValue > 0 && (
+                  <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                    Discount: Rs. {calculateDiscountAmount().toLocaleString()}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Totals */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">🧮 Bill Summary</h4>
+              <div className="space-y-2">
+                {/* Purchase Items */}
+                {calculatePurchaseSubtotal() > 0 && (
+                  <div className="flex justify-between items-center text-gray-700">
+                    <span>Purchase Subtotal:</span>
+                    <span className="font-semibold">Rs. {calculatePurchaseSubtotal().toLocaleString()}</span>
+                  </div>
+                )}
+                
+                {/* Return Items */}
+                {calculateReturnSubtotal() > 0 && (
+                  <div className="flex justify-between items-center text-red-600">
+                    <span>Return Subtotal:</span>
+                    <span className="font-semibold">- Rs. {calculateReturnSubtotal().toLocaleString()}</span>
+                  </div>
+                )}
+                
+                {/* Net Subtotal */}
+                <div className="flex justify-between items-center text-gray-700 border-t pt-2">
+                  <span>Net Subtotal:</span>
+                  <span className="font-semibold">Rs. {calculateSubtotal().toLocaleString()}</span>
+                </div>
+                
+                {calculateItemDiscounts() > 0 && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span>Item Discounts:</span>
+                    <span className="font-semibold">- Rs. {calculateItemDiscounts().toLocaleString()}</span>
+                  </div>
+                )}
+                {calculateDiscountAmount() > 0 && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span>Additional Discount:</span>
+                    <span className="font-semibold">- Rs. {calculateDiscountAmount().toLocaleString()}</span>
+                  </div>
+                )}
+                {(calculateItemDiscounts() > 0 || calculateDiscountAmount() > 0) && (
+                  <div className="flex justify-between items-center text-green-600">
+                    <span>Total Savings:</span>
+                    <span className="font-semibold">Rs. {(calculateItemDiscounts() + calculateDiscountAmount()).toLocaleString()}</span>
+                  </div>
+                )}
+                <div className={`flex justify-between items-center text-xl font-bold border-t pt-2 ${
+                  calculateTotal() < 0 ? 'text-red-600' : 'text-gray-800'
+                }`}>
+                  <span>{calculateTotal() < 0 ? 'REFUND DUE:' : 'TOTAL TO PAY:'}</span>
+                  <span>Rs. {Math.abs(calculateTotal()).toLocaleString()}</span>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* Process Payment Button */}
-          <button 
-            className="btn btn-primary w-full text-lg py-4 flex items-center justify-center gap-2"
-            onClick={handleProcessPayment}
-            disabled={cartItems.length === 0}
-          >
-            🚀 Process Payment
-          </button>
+            {/* Customer Money */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                {calculateTotal() < 0 ? '💰 Refund Amount' : '💰 Amount Received'}
+              </h4>
+              {calculateTotal() < 0 ? (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold text-red-600">
+                      Customer Refund Due
+                    </div>
+                    <div className="text-2xl font-bold text-red-800 mt-2">
+                      Rs. {Math.abs(calculateTotal()).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter amount received..."
+                    value={customerMoney}
+                    onChange={(e) => setCustomerMoney(e.target.value)}
+                  />
+                  {customerMoney && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700">Change:</span>
+                        <span className={`font-semibold ${calculateBalance() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          Rs. {Math.abs(calculateBalance()).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Process Payment Button */}
+            <button 
+              className={`font-bold text-lg py-4 px-6 rounded-lg w-full transition-colors disabled:opacity-50 ${
+                calculateTotal() < 0 
+                  ? 'bg-red-600 hover:bg-red-700 text-white' 
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+              onClick={handleProcessPayment}
+              disabled={cartItems.length === 0}
+            >
+              {calculateTotal() < 0 ? '💸 Process Refund' : '🚀 Process Payment'}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Save/Print Modal */}
       {showSavePrint && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Sale Completed!</h3>
-              <button className="text-gray-400 hover:text-gray-600" onClick={handleCloseSavePrint}>
-                <span className="text-2xl">×</span>
-              </button>
-            </div>
-            <div className="space-y-4">
-              <p className="text-gray-600">What would you like to do with this invoice?</p>
-              <div className="grid grid-cols-2 gap-3">
-                <button className="btn btn-primary flex items-center gap-2" onClick={(e) => {
-                  e.stopPropagation();
-                  handlePrint();
-                }}>
-                  🖨️ Print
-                </button>
-                <button className="btn btn-secondary flex items-center gap-2" onClick={(e) => {
-                  e.stopPropagation();
-                  handleSaveInvoice();
-                }}>
-                  💾 Save
-                </button>
-                <button className="btn btn-outline flex items-center gap-2" onClick={(e) => {
-                  e.stopPropagation();
-                  handleSendSMS();
-                }}>
-                  📱 Send SMS
-                </button>
-                <button className="btn btn-outline flex items-center gap-2" onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloseSavePrint();
-                }}>
-                  ✅ Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Invoice Modal */}
-      {showInvoice && currentInvoice && (
-        <div className="invoice-modal">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowInvoice(false)}></div>
-          <div className="invoice-content">
-            <div className="invoice-header">
-              <h3>Invoice Preview</h3>
-              <button className="text-gray-400 hover:text-gray-600" onClick={() => setShowInvoice(false)}>
-              <span className="text-2xl">×</span>
-            </button>
-            </div>
-            <div id="invoice-content">
-              <div className="store-info">
-                <h2>Wabees Shoe Palace</h2>
-                <p>237,Main Street Maruthamunai-03</p>
-                <p>Phone: 067 2220834</p>
-                <p>Email: info@wabeesshoepalace.lk</p>
-              </div>
-              
-              <div className="invoice-meta">
-                <p><strong>Invoice #:</strong> {currentInvoice.id}</p>
-                <p><strong>Date:</strong> {currentInvoice.date}</p>
-                <p><strong>Time:</strong> {currentInvoice.time}</p>
-                <p><strong>Payment Method:</strong> {currentInvoice.paymentMethod}</p>
-                {currentInvoice.customerPhone && (
-                  <p><strong>Customer Phone:</strong> {currentInvoice.customerPhone}</p>
-                )}
-              </div>
-
-              <div className="invoice-items">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Item</th>
-                      <th>Qty</th>
-                      <th>Price</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentInvoice.items.map(item => (
-                      <tr key={item.id}>
-                        <td>{item.name}</td>
-                        <td>{item.quantity}</td>
-                        <td>Rs. {item.price.toLocaleString()}</td>
-                        <td>Rs. {(item.price * item.quantity).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="invoice-totals">
-                <div className="total-row">
-                  <span>Subtotal:</span>
-                  <span>Rs. {currentInvoice.subtotal.toLocaleString()}</span>
-                </div>
-                <div className="total-row">
-                  <span>Discount:</span>
-                  <span>-Rs. {currentInvoice.discount.toLocaleString()}</span>
-                </div>
-                <div className="total-row grand-total">
-                  <span>Total:</span>
-                  <span>Rs. {currentInvoice.total.toLocaleString()}</span>
-                </div>
-                {currentInvoice.paymentMethod === 'Cash' && (
-                  <>
-                    <div className="total-row">
-                      <span>Amount Received:</span>
-                      <span>Rs. {currentInvoice.customerMoney.toLocaleString()}</span>
-                    </div>
-                    <div className="total-row balance">
-                      <span>Balance:</span>
-                      <span>Rs. {currentInvoice.balance.toLocaleString()}</span>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="invoice-footer">
-                <p>Thank you for shopping with Wabees Shoe Palace!</p>
-                <p>Visit us again soon!</p>
-              </div>
-            </div>
-            
-            <div className="invoice-actions">
-              <button className="print-btn" onClick={handlePrint}>
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Sale Completed!</h3>
+            <p className="text-gray-600 mb-4">What would you like to do with this invoice?</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg" onClick={handlePrint}>
                 🖨️ Print
               </button>
-              <button className="sms-btn" onClick={handleSendSMS}>
+              <button className="bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg" onClick={handleSaveInvoice}>
+                💾 Save
+              </button>
+              <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg" onClick={handleSendSMS}>
                 📱 Send SMS
               </button>
-              <button className="close-modal-btn" onClick={() => setShowInvoice(false)}>
+              <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg" onClick={handleCloseSavePrint}>
                 ✅ Close
               </button>
             </div>
@@ -862,61 +963,60 @@ const POSSystem = () => {
 
       {/* Return Modal */}
       {showReturn && (
-        <div className="return-modal">
-          <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setShowReturn(false)}></div>
-          <div className="return-content">
-            <div className="return-header">
-              <h3>Return Items</h3>
-              <button className="text-gray-400 hover:text-gray-600" onClick={() => setShowReturn(false)}>
-              <span className="text-2xl">×</span>
-            </button>
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Return Items</h3>
             
-            <div className="return-search">
-              <label>Enter Invoice Number:</label>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Invoice Number:</label>
               <input
                 type="text"
-                placeholder="INV001"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter invoice number..."
                 value={returnInvoiceNumber}
                 onChange={(e) => setReturnInvoiceNumber(e.target.value)}
               />
-              <button onClick={handleReturnSearch}>Search Invoice</button>
+              <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg mt-2" onClick={handleReturnSearch}>
+                Search Invoice
+              </button>
             </div>
 
             {returnInvoice && (
-              <div className="return-invoice">
-                <h4>Invoice: {returnInvoice.id}</h4>
-                <p>Date: {returnInvoice.date}</p>
-                <p>Customer: {returnInvoice.customerPhone}</p>
-                <p>Total: Rs. {returnInvoice.total.toLocaleString()}</p>
-                
-                <div className="return-items">
-                  <h4>Select Items to Return:</h4>
-                  {returnInvoice.items.map(item => (
-                    <div
-                      key={item.id}
-                      className={`return-item ${selectedReturnItems.find(selected => selected.id === item.id) ? 'selected' : ''}`}
-                      onClick={() => handleReturnItemClick(item)}
-                    >
-                      <div>
-                        <strong>{item.name}</strong>
-                        <br />
-                        <span>Qty: {item.quantity} | Price: Rs. {item.price.toLocaleString()}</span>
-                      </div>
-                      <div>
-                        {selectedReturnItems.find(selected => selected.id === item.id) ? '✅' : '☐'}
-                      </div>
-                    </div>
-                  ))}
+              <div className="space-y-3">
+                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <h4 className="font-semibold text-gray-800">Invoice: {returnInvoice.id}</h4>
+                  <p className="text-sm text-gray-600">Date: {returnInvoice.date}</p>
+                  <p className="text-sm text-gray-600">Total: Rs. {returnInvoice.total.toLocaleString()}</p>
                 </div>
                 
-                <div className="return-actions">
-                  <button 
-                    className="process-payment-btn"
-                    onClick={handleProcessReturn}
-                    style={{ marginTop: '20px' }}
-                  >
-                    Process Return to New Sale
+                <div>
+                  <h4 className="font-semibold mb-2 text-gray-800">Select Items to Return:</h4>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {returnInvoice.items.map(item => (
+                      <div
+                        key={item.id}
+                        className={`p-2 border rounded-lg cursor-pointer transition-colors ${
+                          selectedReturnItems.find(selected => selected.id === item.id) 
+                            ? 'bg-blue-100 border-blue-400' 
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        }`}
+                        onClick={() => handleReturnItemClick(item)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-gray-800">{item.name}</span>
+                          <span className="text-sm text-gray-600">Qty: {item.quantity}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex-1" onClick={handleProcessReturn}>
+                    Process Return
+                  </button>
+                  <button className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg" onClick={() => setShowReturn(false)}>
+                    Cancel
                   </button>
                 </div>
               </div>

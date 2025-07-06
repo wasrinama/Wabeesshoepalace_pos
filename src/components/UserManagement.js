@@ -159,10 +159,85 @@ const UserManagement = () => {
     setUsers(updatedUsers);
   };
 
-  const rolePermissions = {
-    admin: ['All Access', 'User Management', 'System Settings', 'Reports', 'POS Operations'],
-    manager: ['Reports', 'POS Operations', 'Employee Management', 'Inventory'],
-    cashier: ['POS Operations', 'Basic Reports']
+  // All available permissions
+  const allPermissions = [
+    'All Access',
+    'User Management', 
+    'System Settings',
+    'Reports',
+    'POS Operations',
+    'Employee Management',
+    'Inventory',
+    'Basic Reports',
+    'Customer Management',
+    'Expense Management',
+    'Supplier Management',
+    'Barcode Scanner',
+    'Sales Analytics',
+    'Stock Alerts'
+  ];
+
+  // State for role permissions - can be modified by admin
+  const [rolePermissions, setRolePermissions] = useState({
+    admin: ['All Access', 'User Management', 'System Settings', 'Reports', 'POS Operations', 'Employee Management', 'Inventory', 'Customer Management', 'Expense Management', 'Supplier Management', 'Barcode Scanner', 'Sales Analytics', 'Stock Alerts'],
+    manager: ['Reports', 'POS Operations', 'Employee Management', 'Inventory', 'Customer Management', 'Supplier Management', 'Sales Analytics', 'Stock Alerts'],
+    cashier: ['POS Operations', 'Basic Reports', 'Customer Management', 'Barcode Scanner']
+  });
+
+  // Function to toggle permission for a role
+  const togglePermission = (role, permission) => {
+    setRolePermissions(prev => {
+      const currentPermissions = prev[role] || [];
+      const isCurrentlyGranted = currentPermissions.includes(permission);
+      
+      let newPermissions;
+      if (isCurrentlyGranted) {
+        // Remove permission
+        newPermissions = currentPermissions.filter(p => p !== permission);
+      } else {
+        // Add permission
+        newPermissions = [...currentPermissions, permission];
+      }
+      
+      return {
+        ...prev,
+        [role]: newPermissions
+      };
+    });
+  };
+
+  // Check if current user is admin (in real app, this would come from authentication)
+  const currentUserRole = 'admin'; // You can change this based on your authentication system
+  const canEditPermissions = currentUserRole === 'admin';
+  
+  // State for tracking changes
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedPermissions, setLastSavedPermissions] = useState({
+    admin: ['All Access', 'User Management', 'System Settings', 'Reports', 'POS Operations', 'Employee Management', 'Inventory', 'Customer Management', 'Expense Management', 'Supplier Management', 'Barcode Scanner', 'Sales Analytics', 'Stock Alerts'],
+    manager: ['Reports', 'POS Operations', 'Employee Management', 'Inventory', 'Customer Management', 'Supplier Management', 'Sales Analytics', 'Stock Alerts'],
+    cashier: ['POS Operations', 'Basic Reports', 'Customer Management', 'Barcode Scanner']
+  });
+
+  // Save permissions function
+  const savePermissions = () => {
+    // In a real app, this would make an API call to save permissions
+    setLastSavedPermissions(JSON.parse(JSON.stringify(rolePermissions)));
+    setHasUnsavedChanges(false);
+    alert('✅ Role permissions saved successfully!');
+  };
+
+  // Reset permissions function
+  const resetPermissions = () => {
+    if (lastSavedPermissions) {
+      setRolePermissions(lastSavedPermissions);
+      setHasUnsavedChanges(false);
+    }
+  };
+
+  // Enhanced toggle function with change tracking
+  const togglePermissionWithTracking = (role, permission) => {
+    togglePermission(role, permission);
+    setHasUnsavedChanges(true);
   };
 
   return (
@@ -289,28 +364,143 @@ const UserManagement = () => {
 
       {activeTab === 'roles' && (
         <div className="space-y-6">
-          <h3 className="text-xl font-semibold text-gray-900">Role Permissions</h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-gray-900">Role Permissions</h3>
+            <div className="flex items-center gap-3">
+              {canEditPermissions && hasUnsavedChanges && (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={savePermissions}
+                    className="btn btn-primary text-sm"
+                  >
+                    💾 Save Changes
+                  </button>
+                  <button 
+                    onClick={resetPermissions}
+                    className="btn btn-outline text-sm"
+                  >
+                    🔄 Reset
+                  </button>
+                </div>
+              )}
+              {canEditPermissions && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <p className="text-sm text-blue-800">
+                    💡 Click on the checkboxes to grant or revoke permissions
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {Object.entries(rolePermissions).map(([role, permissions]) => (
               <div key={role} className="card">
-                <h4 className={`text-lg font-bold mb-4 ${
+                <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${
                   role === 'admin' ? 'text-red-600' :
                   role === 'manager' ? 'text-blue-600' :
                   'text-green-600'
                 }`}>
+                  {role === 'admin' ? '🔴' : role === 'manager' ? '🔵' : '🟢'}
                   {role.charAt(0).toUpperCase() + role.slice(1)}
                 </h4>
                 <div className="space-y-2">
-                  {permissions.map((permission, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
-                      <span className="text-green-500">✅</span>
-                      {permission}
-                    </div>
-                  ))}
+                  {allPermissions.map((permission, index) => {
+                    const isGranted = permissions.includes(permission);
+                    return (
+                      <div 
+                        key={index} 
+                        className={`flex items-center gap-2 text-sm p-2 rounded-lg transition-colors ${
+                          canEditPermissions 
+                            ? 'hover:bg-gray-50 cursor-pointer' 
+                            : ''
+                        } ${isGranted ? 'bg-green-50' : 'bg-gray-50'}`}
+                        onClick={() => canEditPermissions && togglePermissionWithTracking(role, permission)}
+                      >
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                          isGranted 
+                            ? 'bg-green-500 border-green-500 text-white' 
+                            : 'border-gray-300 bg-white'
+                        }`}>
+                          {isGranted && <span className="text-xs">✓</span>}
+                        </div>
+                        <span className={`${isGranted ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+                          {permission}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+                
+                {canEditPermissions && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>Permissions: {permissions.length}/{allPermissions.length}</span>
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => {
+                            // Grant all permissions
+                            setRolePermissions(prev => ({
+                              ...prev,
+                              [role]: [...allPermissions]
+                            }));
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          Select All
+                        </button>
+                        <button 
+                          onClick={() => {
+                            // Revoke all permissions
+                            setRolePermissions(prev => ({
+                              ...prev,
+                              [role]: []
+                            }));
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+          
+          {canEditPermissions && (
+            <div className={`card ${hasUnsavedChanges ? 'bg-orange-50 border-orange-200' : 'bg-yellow-50 border-yellow-200'}`}>
+              <div className="flex items-start gap-3">
+                <span className={`${hasUnsavedChanges ? 'text-orange-600' : 'text-yellow-600'} text-xl`}>
+                  {hasUnsavedChanges ? '⚠️' : 'ℹ️'}
+                </span>
+                <div>
+                  <h4 className={`font-semibold ${hasUnsavedChanges ? 'text-orange-800' : 'text-yellow-800'} mb-2`}>
+                    {hasUnsavedChanges ? 'Unsaved Changes!' : 'Important Notes:'}
+                  </h4>
+                  <ul className={`text-sm ${hasUnsavedChanges ? 'text-orange-700' : 'text-yellow-700'} space-y-1`}>
+                    {hasUnsavedChanges ? (
+                      <>
+                        <li>• You have unsaved permission changes</li>
+                        <li>• Click "Save Changes" to apply them permanently</li>
+                        <li>• Click "Reset" to discard changes</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>• Changes are applied immediately when you click on permissions</li>
+                        <li>• Users will need to log out and log back in to see permission changes</li>
+                        <li>• Admin role should always have 'All Access' and 'User Management' permissions</li>
+                        <li>• Be careful when revoking permissions as it may affect user workflow</li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

@@ -124,7 +124,7 @@ function App() {
       case 'dashboard':
         return <Dashboard />;
       case 'pos':
-        return <POSSystem />;
+        return <POSSystem currentUser={currentUser} />;
       case 'inventory':
         return <InventoryManagement />;
       case 'customers':

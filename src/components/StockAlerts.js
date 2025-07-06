@@ -18,7 +18,7 @@ const StockAlerts = ({ products }) => {
         <h3 className="text-3xl font-bold text-red-600 mb-2 flex items-center gap-2">
           ⚠️ Low Stock Alerts
         </h3>
-        <p className="text-gray-600">{products.length} items need restocking</p>
+        <p className="text-gray-600">{products.length} items are running low on stock</p>
       </div>
 
       <div className="card mb-6">
@@ -32,7 +32,6 @@ const StockAlerts = ({ products }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Stock</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -53,11 +52,6 @@ const StockAlerts = ({ products }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.minStock}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.supplier || 'Not assigned'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="btn btn-primary text-xs py-1 px-3">
-                      Reorder
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -68,9 +62,6 @@ const StockAlerts = ({ products }) => {
       <div className="card">
         <h4 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h4>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button className="btn btn-primary flex-1">
-            Generate Purchase Order for All
-          </button>
           <button className="btn btn-secondary flex-1">
             Export Low Stock Report
           </button>

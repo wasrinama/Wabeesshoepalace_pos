@@ -185,7 +185,7 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
   // Generate unique barcode
   const generateBarcode = () => {
     const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     return `${timestamp}${random}`.slice(-13); // Keep last 13 digits for standard barcode length
   };
 
