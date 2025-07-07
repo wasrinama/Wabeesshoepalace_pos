@@ -1,84 +1,33 @@
-// Mock authentication service - no backend required
-class AuthService {
-  constructor() {
-    // Mock user database
-    this.users = [
-      {
-        id: 1,
-        username: 'admin',
-        password: 'admin123',
-        role: 'admin',
-        name: 'System Administrator',
-        email: 'admin@wabeesshoepalace.lk',
-        permissions: ['all']
-      },
-      {
-        id: 2,
-        username: 'manager1',
-        password: 'mgr123',
-        role: 'manager',
-        name: 'Store Manager',
-        email: 'manager@wabeesshoepalace.lk',
-        permissions: ['pos', 'inventory', 'customers', 'reports']
-      },
-      {
-        id: 3,
-        username: 'cashier1',
-        password: 'cash123',
-        role: 'cashier',
-        name: 'Cashier',
-        email: 'cashier@wabeesshoepalace.lk',
-        permissions: ['pos']
-      }
-    ];
-  }
+import apiService from './apiService';
 
-  // Login user with mock authentication
+class AuthService {
+  // Login user with backend API
   async login(credentials) {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await apiService.post('/auth/login', credentials);
       
-      const user = this.users.find(u => 
-        u.username === credentials.username && 
-        u.password === credentials.password
-      );
-      
-      if (user) {
-        // Create user object without password
-        const userWithoutPassword = {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          name: user.name,
-          email: user.email,
-          permissions: user.permissions
-        };
-        
-        // Generate mock token
-        const token = 'mock-token-' + Date.now();
-        
+      if (response.success) {
         // Store token and user data
-        localStorage.setItem('token', token);
-        localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+        apiService.setAuthToken(response.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
         localStorage.setItem('isLoggedIn', 'true');
         
         return {
           success: true,
-          user: userWithoutPassword,
-          token: token
+          user: response.user,
+          token: response.token
         };
       }
       
       return {
         success: false,
-        message: 'Invalid username or password'
+        message: response.message || 'Login failed'
       };
     } catch (error) {
       console.error('Login error:', error);
       return {
         success: false,
-        message: 'Login failed. Please try again.'
+        message: error.message || 'Login failed. Please try again.'
       };
     }
   }
@@ -86,34 +35,18 @@ class AuthService {
   // Register new user (admin only)
   async register(userData) {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Check if user already exists
-      const existingUser = this.users.find(u => u.username === userData.username);
-      if (existingUser) {
-        return {
-          success: false,
-          message: 'Username already exists'
-        };
-      }
-      
-      // Add new user
-      const newUser = {
-        id: this.users.length + 1,
-        ...userData,
-        permissions: this.getPermissionsByRole(userData.role)
-      };
-      
-      this.users.push(newUser);
+      const response = await apiService.post('/auth/register', userData);
       
       return {
-        success: true,
-        message: 'User registered successfully'
+        success: response.success,
+        message: response.message
       };
     } catch (error) {
       console.error('Registration error:', error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Registration failed'
+      };
     }
   }
 
@@ -132,21 +65,16 @@ class AuthService {
   // Update user profile
   async updateProfile(userData) {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       const currentUser = this.getStoredUser();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
       
-      // Update user in mock database
-      const userIndex = this.users.findIndex(u => u.id === currentUser.id);
-      if (userIndex !== -1) {
-        this.users[userIndex] = { ...this.users[userIndex], ...userData };
-        
+      const response = await apiService.put(`/users/${currentUser._id}`, userData);
+      
+      if (response.success) {
         // Update stored user data
-        const updatedUser = { ...currentUser, ...userData };
+        const updatedUser = { ...currentUser, ...response.user };
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
         
         return {
@@ -156,85 +84,68 @@ class AuthService {
         };
       }
       
-      throw new Error('User not found');
+      return {
+        success: false,
+        message: response.message
+      };
     } catch (error) {
       console.error('Update profile error:', error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Update failed'
+      };
     }
   }
 
   // Change password
   async changePassword(passwordData) {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
       const currentUser = this.getStoredUser();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
       
-      // Find user in mock database
-      const userIndex = this.users.findIndex(u => u.id === currentUser.id);
-      if (userIndex !== -1) {
-        // Verify current password
-        if (this.users[userIndex].password === passwordData.currentPassword) {
-          // Update password
-          this.users[userIndex].password = passwordData.newPassword;
-          
-          return {
-            success: true,
-            message: 'Password changed successfully'
-          };
-        } else {
-          return {
-            success: false,
-            message: 'Current password is incorrect'
-          };
-        }
-      }
+      const response = await apiService.put(`/users/${currentUser._id}/password`, passwordData);
       
-      throw new Error('User not found');
+      return {
+        success: response.success,
+        message: response.message
+      };
     } catch (error) {
       console.error('Change password error:', error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Password change failed'
+      };
     }
   }
 
-  // Get permissions by role
-  getPermissionsByRole(role) {
-    const rolePermissions = {
-      admin: ['all'],
-      manager: ['pos', 'inventory', 'customers', 'reports', 'users'],
-      cashier: ['pos']
-    };
-    
-    return rolePermissions[role] || ['pos'];
-  }
-
-  // Logout
+  // Logout user
   logout() {
-    localStorage.removeItem('token');
+    apiService.removeAuthToken();
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isLoggedIn');
   }
 
-  // Check if user is logged in
+  // Check if user is authenticated
   isAuthenticated() {
-    const token = localStorage.getItem('token');
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    return !!(token && isLoggedIn === 'true');
+    return !!this.getAuthToken() && !!localStorage.getItem('isLoggedIn');
   }
 
-  // Get stored user
+  // Get stored user data
   getStoredUser() {
-    const userStr = localStorage.getItem('currentUser');
-    return userStr ? JSON.parse(userStr) : null;
+    try {
+      const userStr = localStorage.getItem('currentUser');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch (error) {
+      console.error('Error parsing stored user:', error);
+      return null;
+    }
   }
 
-  // Get token
-  getToken() {
-    return localStorage.getItem('token');
+  // Get auth token
+  getAuthToken() {
+    return apiService.getAuthToken();
   }
 
   // Check if user has permission
@@ -242,9 +153,19 @@ class AuthService {
     const user = this.getStoredUser();
     if (!user) return false;
     
-    return user.permissions.includes('all') || user.permissions.includes(permission);
+    // Admin has all permissions
+    if (user.role === 'admin') return true;
+    
+    // Check specific permissions based on role
+    const rolePermissions = {
+      manager: ['pos', 'inventory', 'customers', 'suppliers', 'expenses', 'reports'],
+      cashier: ['pos']
+    };
+    
+    return rolePermissions[user.role]?.includes(permission) || false;
   }
 }
 
-// eslint-disable-next-line import/no-anonymous-default-export
-export default new AuthService(); 
+// Create singleton instance
+const authService = new AuthService();
+export default authService; 

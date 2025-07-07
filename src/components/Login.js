@@ -128,24 +128,6 @@ const Login = ({ onLogin }) => {
           </form>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Demo Credentials</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {demoCredentials.map((cred, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-4 text-center">
-                <h4 className="font-semibold text-gray-900 mb-2">{cred.role}</h4>
-                <p className="text-sm text-gray-600 mb-1">
-                  <span className="font-medium">Username:</span> {cred.username}
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Password:</span> {cred.password}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Footer */}
         <div className="text-center text-gray-500 text-sm">
           <p>© 2024 Wabees Shoe Palace. All rights reserved.</p>
