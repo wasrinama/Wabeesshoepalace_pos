@@ -7,6 +7,16 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`❌ Missing required environment variables: ${missingEnvVars.join(', ')}`);
+  console.error('Please check your .env file and make sure all required variables are set.');
+  process.exit(1);
+}
+
 // Import database connection
 const connectDB = require('./config/database');
 
@@ -35,10 +45,10 @@ connectDB();
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - Fixed to handle undefined values
 const limiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW * 60 * 1000, // 15 minutes
-  max: process.env.RATE_LIMIT_MAX, // limit each IP to 100 requests per windowMs
+  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000, // Default 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // Default 100 requests
   message: {
     error: 'Too many requests from this IP, please try again later.'
   }
