@@ -1,0 +1,586 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+  
+  body {
+    @apply font-sans bg-gray-50 text-gray-900 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    /* Prevent zooming on iOS */
+    -webkit-text-size-adjust: 100%;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
+  html {
+    @apply h-full;
+    /* Prevent horizontal scrolling */
+    overflow-x: hidden;
+  }
+  
+  #root {
+    @apply min-h-full;
+  }
+
+  /* Touch-friendly sizing */
+  @media (max-width: 768px) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200;
+    /* Minimum touch target size */
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-600 text-white hover:bg-secondary-700 focus:ring-secondary-500;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+  
+  .btn-outline {
+    @apply border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-primary-500;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6;
+    /* Better touch interaction */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    @apply shadow-lg;
+    transform: translateY(-1px);
+  }
+  
+  .form-input {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500;
+    /* Better mobile input */
+    min-height: 44px;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-2;
+  }
+  
+  .form-textarea {
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 resize-y;
+    min-height: 88px;
+  }
+  
+  .error-message {
+    @apply text-red-600 text-sm mt-2;
+  }
+  
+  .success-message {
+    @apply text-green-600 text-sm mt-2;
+  }
+
+  /* Mobile Navigation Enhancements */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-nav-item {
+    @apply flex flex-col items-center justify-center py-2 px-1 text-xs font-medium;
+    min-height: 56px;
+    min-width: 56px;
+  }
+
+  .mobile-nav-item.active {
+    @apply text-primary-600;
+  }
+
+  .mobile-nav-item:not(.active) {
+    @apply text-gray-500;
+  }
+
+  /* Touch-friendly POS buttons */
+  .pos-button {
+    @apply bg-white border-2 border-gray-300 rounded-lg p-4 text-center transition-all duration-200 cursor-pointer;
+    min-height: 80px;
+  }
+
+  .pos-button:hover, .pos-button:active {
+    @apply border-primary-500 bg-primary-50 transform scale-105;
+  }
+
+  .pos-number-pad {
+    @apply grid grid-cols-3 gap-3;
+  }
+
+  .pos-number-pad button {
+    @apply bg-white border-2 border-gray-300 rounded-lg text-xl font-bold text-gray-900 transition-all duration-150;
+    min-height: 60px;
+  }
+
+  .pos-number-pad button:hover, .pos-number-pad button:active {
+    @apply bg-primary-500 text-white border-primary-500 transform scale-95;
+  }
+
+  /* Mobile-optimized cards */
+  .mobile-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4;
+  }
+
+  /* Swipe-friendly list items */
+  .swipe-item {
+    @apply bg-white border-b border-gray-200 p-4 transition-transform duration-200;
+    touch-action: pan-y;
+  }
+
+  .swipe-item:active {
+    transform: translateX(-5px);
+  }
+
+  /* Day-End Closing Styles */
+  .dayend-section {
+    @apply bg-white rounded-lg shadow-lg p-6 space-y-6;
+  }
+
+  .dayend-header {
+    @apply flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-200;
+  }
+
+  .dayend-header h2 {
+    @apply text-2xl font-bold text-gray-900;
+  }
+
+  .dayend-actions {
+    @apply flex flex-wrap gap-3;
+  }
+
+  .export-btn, .print-btn {
+    @apply px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors font-medium text-sm;
+    min-height: 44px;
+  }
+
+  .print-btn {
+    @apply bg-secondary-600 hover:bg-secondary-700 focus:ring-secondary-500;
+  }
+
+  .dayend-content {
+    @apply space-y-6;
+  }
+
+  .dayend-section-card {
+    @apply bg-gray-50 rounded-lg p-6 border border-gray-200;
+  }
+
+  .dayend-section-card h3 {
+    @apply text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2;
+  }
+
+  .dayend-form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .form-group {
+    @apply space-y-2;
+  }
+
+  .form-group.full-width {
+    @apply md:col-span-2;
+  }
+
+  .form-group label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+
+  .dayend-summary-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+
+  .summary-item {
+    @apply flex justify-between items-center p-3 bg-white rounded-md border border-gray-200;
+  }
+
+  .summary-item .label {
+    @apply text-sm font-medium text-gray-600;
+  }
+
+  .summary-item .value {
+    @apply text-lg font-bold text-gray-900;
+  }
+
+  .payment-breakdown {
+    @apply space-y-3;
+  }
+
+  .payment-method {
+    @apply bg-white rounded-md border border-gray-200 p-4;
+  }
+
+  .payment-header {
+    @apply flex justify-between items-center mb-2;
+  }
+
+  .method-name {
+    @apply text-sm font-medium text-gray-700;
+  }
+
+  .method-amount {
+    @apply text-lg font-bold text-gray-900;
+  }
+
+  .payment-details {
+    @apply text-xs text-gray-500;
+  }
+
+  .payment-total {
+    @apply border-t-2 border-gray-300 pt-3 mt-3;
+  }
+
+  .payment-total .payment-header {
+    @apply text-lg;
+  }
+
+  .payment-total .method-name {
+    @apply text-gray-900 font-semibold;
+  }
+
+  .payment-total .method-amount {
+    @apply text-xl font-bold text-green-600;
+  }
+
+  .expense-breakdown {
+    @apply mt-4 space-y-3;
+  }
+
+  .expense-breakdown h4 {
+    @apply text-base font-semibold text-gray-800 mb-3;
+  }
+
+  .expense-list {
+    @apply space-y-2;
+  }
+
+  .expense-item {
+    @apply flex justify-between items-center p-3 bg-white rounded-md border border-gray-200;
+  }
+
+  .expense-category {
+    @apply text-sm font-medium text-gray-700 min-w-0 flex-1;
+  }
+
+  .expense-description {
+    @apply text-sm text-gray-500 min-w-0 flex-grow mx-2;
+  }
+
+  .expense-amount {
+    @apply text-sm font-semibold text-red-600;
+  }
+
+  .no-expenses {
+    @apply text-center py-4 text-gray-500 bg-white rounded-md border border-gray-200;
+  }
+
+  .cash-handling {
+    @apply space-y-4;
+  }
+
+  .cash-row {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .cash-item {
+    @apply space-y-2;
+  }
+
+  .cash-item label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+
+  .cash-item .form-input {
+    @apply relative;
+  }
+
+  .cash-currency {
+    @apply absolute right-3 top-2 text-gray-500 text-sm;
+  }
+
+  .calculated-value {
+    @apply p-3 bg-white rounded-md border border-gray-200;
+  }
+
+  .calculated-value span {
+    @apply text-lg font-bold text-gray-900;
+  }
+
+  .calculated-value small {
+    @apply block text-xs text-gray-500 mt-1;
+  }
+
+  .calculated-value.balanced {
+    @apply bg-green-50 border-green-200;
+  }
+
+  .calculated-value.balanced span {
+    @apply text-green-700;
+  }
+
+  .calculated-value.over {
+    @apply bg-blue-50 border-blue-200;
+  }
+
+  .calculated-value.over span {
+    @apply text-blue-700;
+  }
+
+  .calculated-value.short {
+    @apply bg-red-50 border-red-200;
+  }
+
+  .calculated-value.short span {
+    @apply text-red-700;
+  }
+
+  .optional-fields {
+    @apply space-y-4;
+  }
+
+  .signature-input {
+    @apply font-serif italic;
+  }
+
+  .signature-note {
+    @apply text-xs text-gray-500 mt-1;
+  }
+
+  .summary-overview {
+    @apply bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200;
+  }
+
+  .summary-overview h3 {
+    @apply text-xl font-bold text-gray-900;
+  }
+
+  .summary-overview-grid {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+
+  .summary-col {
+    @apply space-y-3;
+  }
+
+  .summary-col h4 {
+    @apply text-base font-semibold text-gray-800 border-b border-gray-300 pb-2;
+  }
+
+  .summary-stats {
+    @apply space-y-2;
+  }
+
+  .stat-line {
+    @apply flex justify-between items-center py-1;
+  }
+
+  .stat-line span:first-child {
+    @apply text-sm text-gray-600;
+  }
+
+  .stat-line span:last-child {
+    @apply text-sm font-medium text-gray-900;
+  }
+
+  .stat-line.profit span:last-child {
+    @apply text-green-600 font-bold;
+  }
+
+  .dayend-actions-bottom {
+    @apply flex flex-wrap gap-3 justify-center sm:justify-end pt-6 border-t border-gray-200;
+  }
+
+  .dayend-actions-bottom .btn-secondary {
+    @apply px-6 py-3;
+  }
+
+  .dayend-actions-bottom .btn-primary {
+    @apply px-6 py-3;
+  }
+
+  /* PWA and Mobile Specific Styles */
+  @media (display-mode: standalone) {
+    body {
+      /* PWA status bar padding */
+      padding-top: env(safe-area-inset-top);
+    }
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .card {
+      @apply p-4;
+    }
+
+    .btn {
+      @apply px-3 py-2 text-sm;
+      min-height: 48px;
+    }
+
+    .form-input {
+      @apply text-base;
+      min-height: 48px;
+    }
+
+    .dayend-header {
+      @apply flex-col items-stretch;
+    }
+    
+    .dayend-actions {
+      @apply flex-col;
+    }
+    
+    .export-btn, .print-btn {
+      @apply w-full justify-center;
+    }
+    
+    .dayend-summary-grid {
+      @apply grid-cols-1;
+    }
+    
+    .cash-row {
+      @apply grid-cols-1;
+    }
+    
+    .summary-overview-grid {
+      @apply grid-cols-1;
+    }
+    
+    .dayend-actions-bottom {
+      @apply flex-col;
+    }
+
+    /* Mobile-specific navigation improvements */
+    .mobile-header {
+      @apply sticky top-0 z-40 bg-white border-b border-gray-200;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .mobile-content {
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .btn {
+      min-height: 52px;
+    }
+
+    .form-input {
+      min-height: 52px;
+    }
+
+    .pos-number-pad button {
+      min-height: 68px;
+      @apply text-lg;
+    }
+  }
+
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .card {
+      @apply p-5;
+    }
+
+    .btn {
+      @apply px-4 py-3;
+    }
+  }
+
+  /* High DPI displays */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .card {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  /* Landscape mobile */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .mobile-nav {
+      @apply hidden;
+    }
+
+    .mobile-content {
+      padding-bottom: 0;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    .mobile-nav, .btn, .dayend-actions {
+      @apply hidden;
+    }
+    
+    .card {
+      @apply shadow-none border border-gray-300;
+    }
+
+    body {
+      @apply bg-white;
+    }
+  }
+
+  /* Dark mode support (future enhancement) */
+  @media (prefers-color-scheme: dark) {
+    /* Dark mode styles can be added here when needed */
+  }
+}
+
+@layer utilities {
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .gradient-primary {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  }
+  
+  .gradient-secondary {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  }
+
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+
+  .scrollbar-hide {
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+} 
