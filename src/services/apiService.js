@@ -56,7 +56,12 @@ class ApiService {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        });
+        throw new Error(data.error || data.message || `Request failed with status ${response.status}`);
       }
 
       return data;
@@ -103,4 +108,10 @@ class ApiService {
 
 // Create singleton instance
 const apiService = new ApiService();
+
+// Make it available globally for debugging
+if (typeof window !== 'undefined') {
+  window.apiService = apiService;
+}
+
 export default apiService; 

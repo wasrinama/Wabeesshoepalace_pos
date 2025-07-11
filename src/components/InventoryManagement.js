@@ -1,138 +1,106 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
+import universalPrintService from '../services/universalPrintService';
 import ProductForm from './ProductForm';
 import StockAlerts from './StockAlerts';
 import SupplierManagement from './SupplierManagement';
 import BarcodeScanner from './BarcodeScanner';
 
-// Enhanced product data structure
-const sampleInventoryProducts = [
-  {
-    id: '1',
-    name: 'Nike Air Max 270',
-    price: 120.00,
-    barcode: '1234567890123',
-    category: 'Running',
-    brand: 'Nike',
-    stock: 25,
-    minStock: 10,
-    maxStock: 100,
-    sizes: ['6', '7', '8', '9', '10', '11', '12'],
-    colors: ['Black', 'White', 'Red', 'Blue'],
-    images: ['/images/nike-air-max-1.jpg', '/images/nike-air-max-2.jpg'],
-    description: 'Comfortable running shoes with air cushioning',
-    supplier: 'Nike Distributor',
-    costPrice: 80.00,
-    dateAdded: '2024-01-15',
-    sku: 'NIK-AM270-001',
-    location: 'A-1-01',
-    lastStockUpdate: '2024-03-08'
-  },
-  {
-    id: '2',
-    name: 'Adidas UltraBoost',
-    price: 150.00,
-    barcode: '1234567890124',
-    category: 'Running',
-    brand: 'Adidas',
-    stock: 30,
-    minStock: 15,
-    maxStock: 80,
-    sizes: ['6', '7', '8', '9', '10', '11', '12'],
-    colors: ['Black', 'White', 'Gray', 'Navy'],
-    images: ['/images/adidas-ultra-1.jpg', '/images/adidas-ultra-2.jpg'],
-    description: 'Premium running shoes with boost technology',
-    supplier: 'Adidas Distributor',
-    costPrice: 100.00,
-    dateAdded: '2024-01-20',
-    sku: 'ADI-UB22-001',
-    location: 'A-2-01',
-    lastStockUpdate: '2024-03-07'
-  },
-  {
-    id: '3',
-    name: 'Shoe Care Kit',
-    price: 25.00,
-    barcode: '1234567890125',
-    category: 'Care Products',
-    brand: 'Generic',
-    stock: 5,
-    minStock: 10,
-    maxStock: 50,
-    sizes: ['One Size'],
-    colors: ['Natural'],
-    images: ['/images/care-kit-1.jpg'],
-    description: 'Complete shoe care and cleaning kit',
-    supplier: 'Local Supplier',
-    costPrice: 15.00,
-    dateAdded: '2024-01-10',
-    sku: 'GEN-SCK-001',
-    location: 'B-1-01',
-    lastStockUpdate: '2024-03-05'
-  }
-];
-
-const sampleSuppliers = [
-  {
-    id: '1',
-    name: 'Nike Distributor',
-    contactPerson: 'John Smith',
-    email: 'john@nike-dist.com',
-    phone: '+1-555-0101',
-    address: '123 Nike St, Sports City, SC 12345',
-    paymentTerms: 'Net 30',
-    discountRate: 5
-  },
-  {
-    id: '2',
-    name: 'Adidas Distributor',
-    contactPerson: 'Sarah Johnson',
-    email: 'sarah@adidas-dist.com',
-    phone: '+1-555-0102',
-    address: '456 Adidas Ave, Athletic Town, AT 54321',
-    paymentTerms: 'Net 45',
-    discountRate: 7
-  },
-  {
-    id: '3',
-    name: 'Local Supplier',
-    contactPerson: 'Mike Wilson',
-    email: 'mike@local-supplier.com',
-    phone: '+1-555-0103',
-    address: '789 Local Rd, City, CC 67890',
-    paymentTerms: 'Net 30',
-    discountRate: 3
-  }
-];
-
 const InventoryManagement = () => {
-  const [activeTab, setActiveTab] = useState('products');
-  const [products, setProducts] = useState(sampleInventoryProducts);
-  const [suppliers, setSuppliers] = useState(sampleSuppliers);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [categoriesData, setCategoriesData] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showStockAdjustmentForm, setShowStockAdjustmentForm] = useState(false);
+  const [activeTab, setActiveTab] = useState('products');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [stockFilter, setStockFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [viewMode, setViewMode] = useState('grid'); // grid or table
+  const [showBatchTracker, setShowBatchTracker] = useState(false);
   const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
   const [showBarcodeSticker, setShowBarcodeSticker] = useState(false);
   const [selectedProductForSticker, setSelectedProductForSticker] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [viewMode, setViewMode] = useState('grid'); // grid or table
-  const [showBatchTracker, setShowBatchTracker] = useState(false);
+  const [showPrintingOptions, setShowPrintingOptions] = useState(false);
 
-  // Get unique categories
-  const categories = ['All', ...new Set(products.map(p => p.category))];
+  // Load inventory data
+  useEffect(() => {
+    loadInventoryData();
+  }, []);
+
+  const loadInventoryData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Make parallel API calls
+      const [productsResponse, suppliersResponse, categoriesResponse] = await Promise.all([
+        apiService.get('/products'),
+        apiService.get('/suppliers'),
+        apiService.get('/categories')
+      ]);
+
+      // Handle the API response structure with safety checks
+      const products = Array.isArray(productsResponse.data) ? productsResponse.data : 
+                      Array.isArray(productsResponse.products) ? productsResponse.products : 
+                      Array.isArray(productsResponse) ? productsResponse : [];
+      
+      const suppliers = Array.isArray(suppliersResponse.data) ? suppliersResponse.data : 
+                       Array.isArray(suppliersResponse.suppliers) ? suppliersResponse.suppliers : 
+                       Array.isArray(suppliersResponse) ? suppliersResponse : [];
+      
+      const categories = Array.isArray(categoriesResponse.data) ? categoriesResponse.data : 
+                        Array.isArray(categoriesResponse.categories) ? categoriesResponse.categories : 
+                        Array.isArray(categoriesResponse) ? categoriesResponse : [];
+
+      // Validate data structure before setting state
+      const validProducts = products.filter(p => p && typeof p === 'object' && p.name);
+      const validSuppliers = suppliers.filter(s => s && typeof s === 'object' && s.name);
+      const validCategories = categories.filter(c => c && typeof c === 'object' && c.name);
+
+      setProducts(validProducts);
+      setSuppliers(validSuppliers);
+      setCategoriesData(validCategories);
+
+    } catch (error) {
+      console.error('Error loading inventory data:', error);
+      setError('Failed to load inventory data. Please try again.');
+      
+      // Empty arrays on error - no dummy data
+      setProducts([]);
+      setSuppliers([]);
+      setCategoriesData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get unique categories with safety checks
+  const categories = ['All', ...new Set(products.map(p => {
+    if (typeof p.category === 'object' && p.category?.name) {
+      return String(p.category.name);
+    } else if (typeof p.category === 'string') {
+      return p.category;
+    }
+    return null;
+  }).filter(Boolean))];
 
   // Filter and sort products
   const filteredProducts = products
     .filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           product.barcode.includes(searchTerm) ||
-                           product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'All' || product.category === categoryFilter;
+                           product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (product.barcode && product.barcode.includes(searchTerm)) ||
+                           product.brand.toLowerCase().includes(searchTerm.toLowerCase());
+      const productCategoryName = typeof product.category === 'object' ? product.category?.name : product.category;
+      const matchesCategory = categoryFilter === 'All' || productCategoryName === categoryFilter;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -152,7 +120,7 @@ const InventoryManagement = () => {
     });
 
   // Get low stock products
-  const lowStockProducts = products.filter(p => p.stock <= p.minStock);
+  const lowStockProducts = products.filter(p => p.stock <= p.reorderLevel);
 
   // Generate unique barcode
   const generateUniqueBarcode = () => {
@@ -163,7 +131,7 @@ const InventoryManagement = () => {
 
   // Handle barcode scan
   const handleBarcodeScanned = (barcode) => {
-    const product = products.find(p => p.barcode === barcode);
+    const product = products.find(p => p.barcode && p.barcode === barcode);
     if (product) {
       setSelectedProduct(product);
       setShowBarcodeScanner(false);
@@ -176,36 +144,136 @@ const InventoryManagement = () => {
 
 
   // Handle product operations
-  const handleAddProduct = (productData) => {
-    const newProduct = {
-      ...productData,
-      id: Date.now().toString(),
-      dateAdded: new Date().toISOString().split('T')[0],
-      lastStockUpdate: new Date().toISOString().split('T')[0]
-    };
-    setProducts([...products, newProduct]);
-    setShowProductForm(false);
+  const handleAddProduct = async (productData) => {
+    try {
+      setLoading(true);
+      console.log('=== InventoryManagement: Adding Product ===');
+      console.log('Product data received:', JSON.stringify(productData, null, 2));
+      
+      console.log('Making API call to /products...');
+      const response = await apiService.post('/products', productData);
+      console.log('API Response received:', response);
+      
+      if (response.success) {
+        // Add the new product to the local state
+        const newProduct = response.data;
+        console.log('New product added:', newProduct);
+        setProducts([...products, newProduct]);
+        setShowProductForm(false);
+        setError(null);
+        alert('Product added successfully!');
+      } else {
+        console.error('Failed to add product:', response);
+        const errorMessage = response.error || 'Failed to add product. Please try again.';
+        setError(errorMessage);
+        throw new Error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+      const errorMessage = error.message || 'Failed to add product. Please check your data and try again.';
+      setError(errorMessage);
+      throw new Error(errorMessage); // Re-throw to let the form handle it
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateProduct = (productData) => {
-    setProducts(products.map(p => 
-      p.id === productData.id ? { ...productData, lastStockUpdate: new Date().toISOString().split('T')[0] } : p
-    ));
-    setSelectedProduct(null);
-    setShowProductForm(false);
+  const handleUpdateProduct = async (productData) => {
+    try {
+      setLoading(true);
+      
+      const response = await apiService.put(`/products/${productData._id || productData.id}`, productData);
+      
+      if (response.success) {
+        // Update the product in the local state
+        const updatedProduct = response.data;
+        setProducts(products.map(p => 
+          (p._id === updatedProduct._id || p.id === updatedProduct._id) ? updatedProduct : p
+        ));
+        setSelectedProduct(null);
+        setShowProductForm(false);
+        setError(null);
+      } else {
+        setError('Failed to update product. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      setError('Failed to update product. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteProduct = (productId) => {
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => p._id === productId || p.id === productId);
     setProductToDelete(product);
     setShowDeleteConfirm(true);
   };
 
-  const confirmDeleteProduct = () => {
+  const confirmDeleteProduct = async () => {
     if (productToDelete) {
-      setProducts(products.filter(p => p.id !== productToDelete.id));
-      setShowDeleteConfirm(false);
-      setProductToDelete(null);
+      try {
+        setLoading(true);
+        
+        const response = await apiService.delete(`/products/${productToDelete._id || productToDelete.id}`);
+        
+        if (response.success) {
+          // Remove the product from the local state
+          setProducts(products.filter(p => 
+            (p._id !== productToDelete._id && p.id !== productToDelete.id)
+          ));
+          setShowDeleteConfirm(false);
+          setProductToDelete(null);
+          setError(null);
+        } else {
+          setError('Failed to delete product. Please try again.');
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        setError('Failed to delete product. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Handle updating categories (save new categories to backend)
+  const handleUpdateCategories = async (updatedCategories) => {
+    try {
+      // Find the newly added category (the one without a proper _id from backend)
+      const newCategory = updatedCategories.find(cat => 
+        cat._id && cat._id.toString().length < 15 // Local timestamp IDs are shorter
+      );
+      
+      if (newCategory) {
+        // Save the new category to backend
+        const categoryData = {
+          name: newCategory.name,
+          description: newCategory.description || '',
+          isActive: true
+        };
+        
+        const response = await apiService.post('/categories', categoryData);
+        
+        if (response.success) {
+          // Replace the local category with the backend category
+          const backendCategory = response.data;
+          const finalCategories = updatedCategories.map(cat => 
+            cat._id === newCategory._id ? backendCategory : cat
+          );
+          setCategoriesData(finalCategories);
+        } else {
+          // If backend save fails, just update local state
+          setCategoriesData(updatedCategories);
+        }
+      } else {
+        // No new category, just update local state
+        setCategoriesData(updatedCategories);
+      }
+    } catch (error) {
+      console.error('Error saving category:', error);
+      // If API fails, still update local state so user doesn't lose their work
+      setCategoriesData(updatedCategories);
     }
   };
 
@@ -258,147 +326,397 @@ const InventoryManagement = () => {
     return pattern;
   };
 
-  const handlePrintSticker = () => {
-    if (selectedProductForSticker) {
-      const printWindow = window.open('', '_blank');
-      const barcode = selectedProductForSticker.barcode || generateUniqueBarcode();
-      
-      // Create barcode using CSS and spans for better print compatibility
-      const barcodePattern = createBarcodePattern(barcode);
-      let barcodeHTML = '';
-      
-      // Create individual bars from the pattern
-      for (let i = 0; i < barcodePattern.length; i++) {
-        const isBlack = barcodePattern[i] === '1';
-        const color = isBlack ? '#000000' : '#ffffff';
-        const borderStyle = isBlack ? '' : 'border-left: 1px solid #fff; border-right: 1px solid #fff;';
-        barcodeHTML += `<span style="display:inline-block;width:2px;height:40px;background:${color};${borderStyle}"></span>`;
+  // Enhanced printing functions for Zebra printers
+  const printToZebraPrinter = async (product) => {
+    const barcode = product.barcode || generateUniqueBarcode();
+    const productName = product.name.substring(0, 25); // Limit length for label
+    
+    // ZPL (Zebra Programming Language) commands
+    const zpl = `
+^XA
+^LH0,0
+^FO50,20^ADN,20,10^FD${productName}^FS
+^FO50,50^BY2,3,50^BCN,50,Y,N,N^FD${barcode}^FS
+^FO50,110^ADN,18,10^FD${barcode}^FS
+^FO50,140^ADN,12,8^FDRs. ${product.price}^FS
+^XZ
+`;
+
+    try {
+      // Method 1: Try Web Serial API for direct printer communication (Chrome only)
+      if (navigator.serial) {
+        await printZPLViaSerial(zpl);
+        return;
       }
+
+      // Method 2: Try WebUSB API (if available)
+      if (navigator.usb) {
+        await printZPLViaUSB(zpl);
+        return;
+      }
+
+      // Method 3: Copy ZPL to clipboard for manual printing
+      await navigator.clipboard.writeText(zpl);
+      alert('ZPL code copied to clipboard! You can paste it into Zebra Setup Utilities or save as .zpl file');
       
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Barcode Sticker - ${selectedProductForSticker.name}</title>
-            <style>
-              body { 
-                font-family: Arial, sans-serif; 
-                margin: 0; 
-                padding: 20px; 
-                background: white;
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-              }
-              .sticker { 
-                width: 240px; 
-                height: 144px; 
-                background: white;
-                border: 2px solid #000; 
-                border-radius: 8px;
-                padding: 12px; 
-                margin: 0 auto; 
-                display: flex; 
-                flex-direction: column; 
-                justify-content: center; 
-                align-items: center; 
-                text-align: center;
-                page-break-inside: avoid;
-              }
-              .barcode-section { 
-                margin: 8px 0;
-                width: 100%;
-              }
-              .barcode-container { 
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 55px;
-                margin-bottom: 4px;
-                background: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                padding: 5px;
-                overflow: hidden;
-              }
-              .barcode { 
-                display: flex;
-                align-items: center;
-                height: 45px;
-                justify-content: center;
-                line-height: 0;
-                font-size: 0;
-                background: white;
-                padding: 2px;
-              }
-              .barcode-number {
-                font-family: 'Courier New', monospace;
-                font-size: 12px;
-                margin: 2px 0;
-                color: #333;
-                font-weight: bold;
-                letter-spacing: 1px;
-              }
-              .product-name { 
-                font-size: 14px; 
-                font-weight: bold; 
-                margin: 8px 0 4px 0;
-                max-width: 100%;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                color: #000;
-              }
-              @media print {
-                body { 
-                  margin: 0; 
-                  padding: 10px; 
-                  background: white;
-                }
-                .sticker { 
-                  margin: 0; 
-                  border: 2px solid #000;
-                }
-                * {
-                  -webkit-print-color-adjust: exact !important;
-                  color-adjust: exact !important;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="sticker">
-              <div class="barcode-section">
-                <div class="barcode-container">
-                  <div class="barcode">
-                    ${barcodeHTML}
-                  </div>
-                </div>
-                <div class="barcode-number">${barcode}</div>
-              </div>
-              <div class="product-name">${selectedProductForSticker.name}</div>
-            </div>
-            <script>
-              window.onload = function() {
-                window.print();
-                window.onafterprint = function() {
-                  window.close();
-                };
-              };
-            </script>
-          </body>
-        </html>
-      `);
-      
-      printWindow.document.close();
-      setShowBarcodeSticker(false);
+    } catch (error) {
+      console.error('Direct printing failed:', error);
+      // Fallback to HTML printing
+      handlePrintSticker();
     }
   };
 
+  // ZPL printing via Web Serial API
+  const printZPLViaSerial = async (zpl) => {
+    try {
+      const port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 9600 });
+      
+      const writer = port.writable.getWriter();
+      const encoder = new TextEncoder();
+      
+      await writer.write(encoder.encode(zpl));
+      writer.releaseLock();
+      await port.close();
+      
+      alert('Barcode sticker sent to Zebra printer via Serial!');
+    } catch (error) {
+      console.error('Serial printing error:', error);
+      throw error;
+    }
+  };
+
+  // ZPL printing via WebUSB API
+  const printZPLViaUSB = async (zpl) => {
+    try {
+      const device = await navigator.usb.requestDevice({
+        filters: [{ vendorId: 0x0a5f }] // Zebra vendor ID
+      });
+      
+      await device.open();
+      await device.selectConfiguration(1);
+      await device.claimInterface(0);
+      
+      const encoder = new TextEncoder();
+      const data = encoder.encode(zpl);
+      
+      await device.transferOut(1, data);
+      
+      await device.close();
+      alert('Barcode sticker sent to Zebra printer via USB!');
+    } catch (error) {
+      console.error('USB printing error:', error);
+      throw error;
+    }
+  };
+
+  // Enhanced handlePrintSticker with Zebra support
+  const handlePrintSticker = async () => {
+    if (selectedProductForSticker) {
+      try {
+        // Use universal printing service for barcode labels
+        const barcodeData = {
+          name: selectedProductForSticker.name,
+          barcode: selectedProductForSticker.barcode || generateUniqueBarcode(),
+          price: selectedProductForSticker.price,
+          id: selectedProductForSticker._id || selectedProductForSticker.id
+        };
+        
+        const result = await universalPrintService.printReceipt(barcodeData, {
+          storeName: '🏪 WABEES SHOE PALACE 👟',
+          format: 'label' // Specify label format
+        });
+        
+        if (result.success) {
+          alert(`✅ ${result.message}`);
+          setShowBarcodeSticker(false);
+        } else {
+          // Show printing options as fallback
+          setShowPrintingOptions(true);
+        }
+      } catch (error) {
+        console.error('Barcode printing error:', error);
+        // Show printing options as fallback
+        setShowPrintingOptions(true);
+      }
+    }
+  };
+
+  // Print via different methods
+  const handlePrintMethod = async (method) => {
+    if (!selectedProductForSticker) return;
+    
+    setShowPrintingOptions(false);
+    
+    switch (method) {
+      case 'zebra-direct':
+        await printToZebraPrinter(selectedProductForSticker);
+        break;
+      case 'zebra-driver':
+        printViaZebraDriver(selectedProductForSticker);
+        break;
+      case 'html':
+      default:
+        printViaHTML(selectedProductForSticker);
+        break;
+    }
+    
+    setShowBarcodeSticker(false);
+  };
+
+  // Print via Zebra driver (improved HTML)
+  const printViaZebraDriver = (product) => {
+    const printWindow = window.open('', '_blank');
+    const barcode = product.barcode || generateUniqueBarcode();
+    
+    // Optimized for Zebra thermal printers
+    const barcodePattern = createBarcodePattern(barcode);
+    let barcodeHTML = '';
+    
+    // Create individual bars with precise measurements
+    for (let i = 0; i < barcodePattern.length; i++) {
+      const isBlack = barcodePattern[i] === '1';
+      const color = isBlack ? '#000000' : '#ffffff';
+      barcodeHTML += `<span style="display:inline-block;width:1.5px;height:35px;background:${color};"></span>`;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Barcode Sticker - ${product.name}</title>
+          <style>
+            @page { 
+              size: 2.25in 1.25in; 
+              margin: 0; 
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 0; 
+              padding: 4px; 
+              background: white;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .sticker { 
+              width: 100%; 
+              height: 100%;
+              background: white;
+              border: 1px solid #000; 
+              box-sizing: border-box;
+              padding: 4px; 
+              display: flex; 
+              flex-direction: column; 
+              justify-content: center; 
+              align-items: center; 
+              text-align: center;
+            }
+            .product-name { 
+              font-size: 10px; 
+              font-weight: bold; 
+              margin: 2px 0;
+              max-width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              color: #000;
+            }
+            .barcode-container { 
+              margin: 3px 0;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 35px;
+              background: white;
+            }
+            .barcode { 
+              display: flex;
+              align-items: center;
+              height: 35px;
+              line-height: 0;
+              font-size: 0;
+            }
+            .barcode-number {
+              font-family: 'Courier New', monospace;
+              font-size: 8px;
+              margin: 1px 0;
+              color: #000;
+              font-weight: bold;
+              letter-spacing: 0.5px;
+            }
+            .price {
+              font-size: 10px;
+              font-weight: bold;
+              color: #000;
+              margin: 2px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="sticker">
+            <div class="product-name">${product.name.substring(0, 25)}</div>
+            <div class="barcode-container">
+              <div class="barcode">${barcodeHTML}</div>
+            </div>
+            <div class="barcode-number">${barcode}</div>
+                         <div class="price">Rs. ${product.price}</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
+
+  // Original HTML printing method
+  const printViaHTML = (product) => {
+    const printWindow = window.open('', '_blank');
+    const barcode = product.barcode || generateUniqueBarcode();
+    
+    // Create barcode using CSS and spans for better print compatibility
+    const barcodePattern = createBarcodePattern(barcode);
+    let barcodeHTML = '';
+    
+    // Create individual bars from the pattern
+    for (let i = 0; i < barcodePattern.length; i++) {
+      const isBlack = barcodePattern[i] === '1';
+      const color = isBlack ? '#000000' : '#ffffff';
+      const borderStyle = isBlack ? '' : 'border-left: 1px solid #fff; border-right: 1px solid #fff;';
+      barcodeHTML += `<span style="display:inline-block;width:2px;height:40px;background:${color};${borderStyle}"></span>`;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Barcode Sticker - ${product.name}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 0; 
+              padding: 20px; 
+              background: white;
+              -webkit-print-color-adjust: exact;
+              color-adjust: exact;
+            }
+            .sticker { 
+              width: 240px; 
+              height: 144px; 
+              background: white;
+              border: 2px solid #000; 
+              border-radius: 8px;
+              padding: 12px; 
+              margin: 0 auto; 
+              display: flex; 
+              flex-direction: column; 
+              justify-content: center; 
+              align-items: center; 
+              text-align: center;
+              page-break-inside: avoid;
+            }
+            .barcode-section { 
+              margin: 8px 0;
+              width: 100%;
+            }
+            .barcode-container { 
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 55px;
+              margin-bottom: 4px;
+              background: white;
+              border: 1px solid #ccc;
+              border-radius: 4px;
+              padding: 5px;
+              overflow: hidden;
+            }
+            .barcode { 
+              display: flex;
+              align-items: center;
+              height: 45px;
+              justify-content: center;
+              line-height: 0;
+              font-size: 0;
+              background: white;
+              padding: 2px;
+            }
+            .barcode-number {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              margin: 2px 0;
+              color: #333;
+              font-weight: bold;
+              letter-spacing: 1px;
+            }
+            .product-name { 
+              font-size: 14px; 
+              font-weight: bold; 
+              margin: 8px 0 4px 0;
+              max-width: 100%;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              color: #000;
+            }
+            @media print {
+              body { 
+                margin: 0; 
+                padding: 10px; 
+                background: white;
+              }
+              .sticker { 
+                margin: 0; 
+                border: 2px solid #000;
+              }
+              * {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="sticker">
+            <div class="barcode-section">
+              <div class="barcode-container">
+                <div class="barcode">
+                  ${barcodeHTML}
+                </div>
+              </div>
+              <div class="barcode-number">${barcode}</div>
+            </div>
+            <div class="product-name">${product.name}</div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
+
   const formatCurrency = (amount) => {
-    return `Rs. ${amount.toFixed(2)}`;
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return 'Rs. 0.00';
+    }
+    return `Rs. ${parseFloat(amount).toFixed(2)}`;
   };
 
   const getStockStatus = (product) => {
-    if (product.stock <= product.minStock) {
+    if (product.stock <= product.reorderLevel) {
       return { label: 'Low Stock', color: 'red' };
     } else if (product.stock >= product.maxStock) {
       return { label: 'Overstocked', color: 'yellow' };
@@ -521,7 +839,7 @@ const InventoryManagement = () => {
                   const stockStatus = getStockStatus(product);
                   
                   return (
-                    <div key={product.id} className="card relative">
+                    <div key={product._id || product.id} className="card relative">
                       <div className="relative mb-4">
                         <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center text-2xl font-bold text-gray-400">
                           {product.name.substring(0, 2)}
@@ -540,32 +858,32 @@ const InventoryManagement = () => {
                       <div className="space-y-2 mb-4">
                         <h3 className="font-semibold text-gray-900">{product.name}</h3>
                         <p className="text-sm text-gray-600">{product.brand}</p>
-                        <p className="text-lg font-bold text-primary-600">{formatCurrency(product.price)}</p>
-                        <p className="text-sm text-gray-600">Stock: {product.stock} | Min: {product.minStock}</p>
+                        <p className="text-lg font-bold text-primary-600">{formatCurrency(product.sellingPrice)}</p>
+                        <p className="text-sm text-gray-600">Stock: {product.stock} | Min: {product.reorderLevel}</p>
                         <p className="text-xs text-gray-500">SKU: {product.sku}</p>
-                        <p className="text-xs text-gray-500">Location: {product.location}</p>
-                        {product.sizes && product.sizes.length > 0 && (
+                        <p className="text-xs text-gray-500">Location: {product.location || 'N/A'}</p>
+                        {product.sizes && (Array.isArray(product.sizes) ? product.sizes.length > 0 : product.sizes) && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             <span className="text-xs text-gray-500">Sizes:</span>
-                            {product.sizes.slice(0, 3).map((size, index) => (
+                            {(Array.isArray(product.sizes) ? product.sizes : [product.sizes]).slice(0, 3).map((size, index) => (
                               <span key={index} className="text-xs bg-gray-100 text-gray-600 px-1 py-0.5 rounded">
-                                {size}
+                                {typeof size === 'object' ? size?.name : size}
                               </span>
                             ))}
-                            {product.sizes.length > 3 && (
+                            {(Array.isArray(product.sizes) ? product.sizes.length > 3 : false) && (
                               <span className="text-xs text-gray-400">+{product.sizes.length - 3}</span>
                             )}
                           </div>
                         )}
-                        {product.colors && product.colors.length > 0 && (
+                        {product.colors && (Array.isArray(product.colors) ? product.colors.length > 0 : product.colors) && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             <span className="text-xs text-gray-500">Colors:</span>
-                            {product.colors.slice(0, 3).map((color, index) => (
+                            {(Array.isArray(product.colors) ? product.colors : [product.colors]).slice(0, 3).map((color, index) => (
                               <span key={index} className="text-xs bg-gray-100 text-gray-600 px-1 py-0.5 rounded">
-                                {color}
+                                {typeof color === 'object' ? color?.name : color}
                               </span>
                             ))}
-                            {product.colors.length > 3 && (
+                            {(Array.isArray(product.colors) ? product.colors.length > 3 : false) && (
                               <span className="text-xs text-gray-400">+{product.colors.length - 3}</span>
                             )}
                           </div>
@@ -580,7 +898,7 @@ const InventoryManagement = () => {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteProduct(product.id)}
+                            onClick={() => handleDeleteProduct(product._id || product.id)}
                             className="btn btn-danger text-xs py-2"
                           >
                             Delete
@@ -620,7 +938,7 @@ const InventoryManagement = () => {
                       const stockStatus = getStockStatus(product);
                       
                       return (
-                        <tr key={product.id} className="hover:bg-gray-50">
+                        <tr key={product._id || product.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
                               <div className="text-sm font-medium text-gray-900">{product.name}</div>
@@ -629,32 +947,32 @@ const InventoryManagement = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{product.sku}</div>
-                            <div className="text-sm text-gray-500">{product.barcode}</div>
+                            <div className="text-sm text-gray-500">{product.barcode || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="space-y-1">
-                              {product.sizes && product.sizes.length > 0 && (
+                              {product.sizes && (Array.isArray(product.sizes) ? product.sizes.length > 0 : product.sizes) && (
                                 <div className="flex flex-wrap gap-1">
                                   <span className="text-xs text-gray-500">Sizes:</span>
-                                  {product.sizes.slice(0, 4).map((size, index) => (
+                                  {(Array.isArray(product.sizes) ? product.sizes : [product.sizes]).slice(0, 4).map((size, index) => (
                                     <span key={index} className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded">
-                                      {size}
+                                      {typeof size === 'object' ? size?.name : size}
                                     </span>
                                   ))}
-                                  {product.sizes.length > 4 && (
+                                  {(Array.isArray(product.sizes) ? product.sizes.length > 4 : false) && (
                                     <span className="text-xs text-gray-400">+{product.sizes.length - 4}</span>
                                   )}
                                 </div>
                               )}
-                              {product.colors && product.colors.length > 0 && (
+                              {product.colors && (Array.isArray(product.colors) ? product.colors.length > 0 : product.colors) && (
                                 <div className="flex flex-wrap gap-1">
                                   <span className="text-xs text-gray-500">Colors:</span>
-                                  {product.colors.slice(0, 4).map((color, index) => (
+                                  {(Array.isArray(product.colors) ? product.colors : [product.colors]).slice(0, 4).map((color, index) => (
                                     <span key={index} className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded">
-                                      {color}
+                                      {typeof color === 'object' ? color?.name : color}
                                     </span>
                                   ))}
-                                  {product.colors.length > 4 && (
+                                  {(Array.isArray(product.colors) ? product.colors.length > 4 : false) && (
                                     <span className="text-xs text-gray-400">+{product.colors.length - 4}</span>
                                   )}
                                 </div>
@@ -663,10 +981,10 @@ const InventoryManagement = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{product.stock}</div>
-                            <div className="text-sm text-gray-500">Min: {product.minStock}</div>
+                            <div className="text-sm text-gray-500">Min: {product.reorderLevel}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatCurrency(product.price)}
+                            {formatCurrency(product.sellingPrice)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -679,7 +997,7 @@ const InventoryManagement = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {product.location}
+                            {product.location || 'N/A'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex flex-wrap gap-2">
@@ -696,7 +1014,7 @@ const InventoryManagement = () => {
                                 🏷️ Print
                               </button>
                               <button
-                                onClick={() => handleDeleteProduct(product.id)}
+                                onClick={() => handleDeleteProduct(product._id || product.id)}
                                 className="text-red-600 hover:text-red-900"
                               >
                                 Delete
@@ -734,12 +1052,14 @@ const InventoryManagement = () => {
         <ProductForm
           product={selectedProduct}
           suppliers={suppliers}
+          categories={categoriesData}
           onSave={selectedProduct ? handleUpdateProduct : handleAddProduct}
           onCancel={() => {
             setShowProductForm(false);
             setSelectedProduct(null);
           }}
           onUpdateSuppliers={setSuppliers}
+          onUpdateCategories={handleUpdateCategories}
         />
       )}
 
@@ -749,6 +1069,52 @@ const InventoryManagement = () => {
           onClose={() => setShowBarcodeScanner(false)}
           isOpen={showBarcodeScanner}
         />
+      )}
+
+      {/* Printing Options Modal */}
+      {showPrintingOptions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Choose Printing Method</h3>
+            <p className="text-gray-600 mb-6">
+              Select how you want to print the barcode sticker for "{selectedProductForSticker?.name}"
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => handlePrintMethod('zebra-direct')}
+                className="btn btn-primary w-full text-left"
+              >
+                🖨️ <strong>Zebra Direct (ZPL)</strong>
+                <br/>
+                <small className="text-gray-300">Direct printing via Serial/USB (Recommended for Zebra)</small>
+              </button>
+              <button
+                onClick={() => handlePrintMethod('zebra-driver')}
+                className="btn btn-outline w-full text-left"
+              >
+                📄 <strong>Zebra Driver (Optimized HTML)</strong>
+                <br/>
+                <small className="text-gray-500">Print via Windows driver with thermal printer settings</small>
+              </button>
+              <button
+                onClick={() => handlePrintMethod('html')}
+                className="btn btn-outline w-full text-left"
+              >
+                🌐 <strong>Standard HTML</strong>
+                <br/>
+                <small className="text-gray-500">Universal printing method (works with any printer)</small>
+              </button>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowPrintingOptions(false)}
+                className="btn btn-outline flex-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showBarcodeSticker && selectedProductForSticker && (
@@ -805,16 +1171,22 @@ const InventoryManagement = () => {
             
             <div className="flex gap-3">
               <button
-                onClick={handlePrintSticker}
+                onClick={() => handlePrintMethod('zebra-direct')}
                 className="btn btn-primary flex-1"
               >
-                🖨️ Print Sticker
+                🖨️ Print via Zebra Direct
               </button>
               <button
-                onClick={() => setShowBarcodeSticker(false)}
+                onClick={() => handlePrintMethod('zebra-driver')}
                 className="btn btn-outline flex-1"
               >
-                Cancel
+                Print via Zebra Driver
+              </button>
+              <button
+                onClick={() => handlePrintMethod('html')}
+                className="btn btn-outline flex-1"
+              >
+                Print via HTML (Fallback)
               </button>
             </div>
           </div>
@@ -841,7 +1213,7 @@ const InventoryManagement = () => {
                 <div className="text-sm text-gray-700">
                   <p><strong>SKU:</strong> {productToDelete.sku}</p>
                   <p><strong>Stock:</strong> {productToDelete.stock} units</p>
-                  <p><strong>Value:</strong> {formatCurrency(productToDelete.price * productToDelete.stock)}</p>
+                  <p><strong>Value:</strong> {formatCurrency(productToDelete.sellingPrice * productToDelete.stock)}</p>
                 </div>
               </div>
               <p className="text-xs text-red-600 mb-4">

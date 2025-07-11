@@ -1,103 +1,5 @@
-import React, { useState } from 'react';
-
-// Sample customer data with birthday and messaging preferences
-const sampleCustomers = [
-  {
-    id: '1',
-    name: 'Kamal Perera',
-    email: 'kamal@email.com',
-    phone: '+94701234567',
-    address: '123 Galle Road, Colombo 03',
-    birthday: '1985-06-15',
-    dateJoined: '2024-01-15',
-    totalSpent: 45000,
-    totalOrders: 8,
-    loyaltyPoints: 450,
-    loyaltyTier: 'Gold',
-    lastPurchase: '2024-03-10',
-    smsOptIn: true,
-    whatsappOptIn: true,
-    emailOptIn: true,
-    lastMessageSent: '2024-03-01',
-    purchases: [
-      { id: 'ORD001', date: '2024-03-10', total: 8500, items: 3 },
-      { id: 'ORD002', date: '2024-02-28', total: 6200, items: 2 },
-      { id: 'ORD003', date: '2024-02-15', total: 12000, items: 4 }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Nimal Silva',
-    email: 'nimal@email.com',
-    phone: '+94712345678',
-    address: '456 Kandy Road, Kaduwela',
-    birthday: '1990-12-22',
-    dateJoined: '2024-02-01',
-    totalSpent: 28000,
-    totalOrders: 5,
-    loyaltyPoints: 280,
-    loyaltyTier: 'Silver',
-    lastPurchase: '2024-03-08',
-    smsOptIn: true,
-    whatsappOptIn: false,
-    emailOptIn: true,
-    lastMessageSent: '2024-02-25',
-    purchases: [
-      { id: 'ORD004', date: '2024-03-08', total: 5500, items: 2 },
-      { id: 'ORD005', date: '2024-02-20', total: 7800, items: 3 }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Amara Fernando',
-    email: 'amara@email.com',
-    phone: '+94723456789',
-    address: '789 Main Street, Negombo',
-    birthday: '1992-04-10',
-    dateJoined: '2024-01-20',
-    totalSpent: 15000,
-    totalOrders: 3,
-    loyaltyPoints: 150,
-    loyaltyTier: 'Bronze',
-    lastPurchase: '2024-03-05',
-    smsOptIn: false,
-    whatsappOptIn: true,
-    emailOptIn: true,
-    lastMessageSent: null,
-    purchases: [
-      { id: 'ORD006', date: '2024-03-05', total: 4500, items: 1 },
-      { id: 'ORD007', date: '2024-02-10', total: 6200, items: 2 }
-    ]
-  }
-];
-
-// Sample promotional campaigns
-const samplePromotions = [
-  {
-    id: '1',
-    title: 'Summer Sale 2024',
-    message: 'Get 30% OFF on all summer collection! Use code SUMMER30. Valid until June 30th.',
-    type: 'discount',
-    discount: 30,
-    validUntil: '2024-06-30',
-    targetTier: 'All',
-    status: 'active',
-    sentCount: 0,
-    createdAt: '2024-03-01'
-  },
-  {
-    id: '2',
-    title: 'VIP Gold Member Exclusive',
-    message: 'Exclusive 20% discount for our Gold members! Use code GOLD20. Limited time offer.',
-    type: 'tier-exclusive',
-    discount: 20,
-    validUntil: '2024-04-15',
-    targetTier: 'Gold',
-    status: 'draft',
-    sentCount: 0,
-    createdAt: '2024-03-05'
-  }
-];
+import React, { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
 
 // Loyalty tiers
 const loyaltyTiers = [
@@ -109,8 +11,12 @@ const loyaltyTiers = [
 
 const CustomerManagement = () => {
   const [activeTab, setActiveTab] = useState('customers');
-  const [customers, setCustomers] = useState(sampleCustomers);
-  const [promotions, setPromotions] = useState(samplePromotions);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Real data state
+  const [customers, setCustomers] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerForm, setShowCustomerForm] = useState(false);
   const [showPromotionForm, setShowPromotionForm] = useState(false);
@@ -120,6 +26,120 @@ const CustomerManagement = () => {
   const [tierFilter, setTierFilter] = useState('All');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+
+  // Load customer data
+  useEffect(() => {
+    loadCustomerData();
+  }, []);
+
+  const loadCustomerData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Make parallel API calls
+      const [customersResponse, promotionsResponse] = await Promise.all([
+        apiService.get('/customers'),
+        apiService.get('/promotions').catch(() => ({ promotions: [] })) // Fallback if promotions endpoint doesn't exist
+      ]);
+
+      // Transform backend customer data to frontend format
+      const backendCustomers = customersResponse.data || [];
+      const frontendCustomers = backendCustomers.map(customer => ({
+        id: customer._id,
+        name: `${customer.firstName} ${customer.lastName}`,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address?.street || '',
+        birthday: customer.dateOfBirth ? customer.dateOfBirth.split('T')[0] : '',
+        dateJoined: customer.createdAt ? customer.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+        totalSpent: customer.totalSpent || 0,
+        totalOrders: 0, // This would need to be calculated from sales data
+        loyaltyPoints: customer.loyaltyPoints || 0,
+        loyaltyTier: customer.tier || 'Bronze',
+        lastPurchase: null, // This would need to be calculated from sales data
+        lastMessageSent: null,
+        purchases: [],
+        smsOptIn: true, // Default values for marketing preferences
+        whatsappOptIn: true,
+        emailOptIn: true
+      }));
+      setCustomers(frontendCustomers);
+      setPromotions(promotionsResponse.promotions || []);
+
+    } catch (error) {
+      console.error('Error loading customer data:', error);
+      setError('Failed to load customer data. Please try again.');
+      
+      // Fallback to sample data if API fails
+      setCustomers([
+        {
+          id: '1',
+          name: 'Kamal Perera',
+          email: 'kamal@email.com',
+          phone: '+94701234567',
+          address: '123 Galle Road, Colombo 03',
+          birthday: '1985-06-15',
+          dateJoined: '2024-01-15',
+          totalSpent: 45000,
+          totalOrders: 8,
+          loyaltyPoints: 450,
+          loyaltyTier: 'Gold',
+          lastPurchase: '2024-03-10',
+          smsOptIn: true,
+          whatsappOptIn: true,
+          emailOptIn: true,
+          lastMessageSent: '2024-03-01',
+          purchases: [
+            { id: 'ORD001', date: '2024-03-10', total: 8500, items: 3 },
+            { id: 'ORD002', date: '2024-02-28', total: 6200, items: 2 },
+            { id: 'ORD003', date: '2024-02-15', total: 12000, items: 4 }
+          ]
+        },
+        {
+          id: '2',
+          name: 'Nimal Silva',
+          email: 'nimal@email.com',
+          phone: '+94712345678',
+          address: '456 Kandy Road, Kaduwela',
+          birthday: '1990-12-22',
+          dateJoined: '2024-02-01',
+          totalSpent: 28000,
+          totalOrders: 5,
+          loyaltyPoints: 280,
+          loyaltyTier: 'Silver',
+          lastPurchase: '2024-03-08',
+          smsOptIn: true,
+          whatsappOptIn: false,
+          emailOptIn: true,
+          lastMessageSent: '2024-02-25',
+          purchases: [
+            { id: 'ORD004', date: '2024-03-08', total: 5500, items: 2 },
+            { id: 'ORD005', date: '2024-02-20', total: 7800, items: 3 }
+          ]
+        }
+      ]);
+      
+      setPromotions([
+        {
+          id: '1',
+          title: 'Summer Sale 2024',
+          message: 'Get 30% OFF on all summer collection! Use code SUMMER30. Valid until June 30th.',
+          type: 'discount',
+          discount: 30,
+          validUntil: '2024-06-30',
+          targetTier: 'All',
+          status: 'active',
+          sentCount: 0,
+          createdAt: '2024-03-01'
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get customers with upcoming birthdays (next 30 days)
   const getUpcomingBirthdays = () => {
@@ -237,35 +257,166 @@ const CustomerManagement = () => {
   };
 
   // Customer operations
-  const handleAddCustomer = (customerData) => {
-    const tier = calculateTier(0);
-    const newCustomer = {
-      ...customerData,
-      id: Date.now().toString(),
-      dateJoined: new Date().toISOString().split('T')[0],
-      totalSpent: 0,
-      totalOrders: 0,
-      loyaltyPoints: 0,
-      loyaltyTier: tier.name,
-      lastPurchase: null,
-      lastMessageSent: null,
-      purchases: []
-    };
-    setCustomers([...customers, newCustomer]);
-    setShowCustomerForm(false);
+  const handleAddCustomer = async (customerData) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Transform frontend data to backend format
+      const backendData = {
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        email: customerData.email,
+        phone: customerData.phone,
+        address: {
+          street: customerData.address,
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'Sri Lanka'
+        },
+        dateOfBirth: customerData.birthday || null,
+        customerType: 'regular',
+        loyaltyPoints: 0,
+        totalSpent: 0
+      };
+
+      // Make API call to save customer
+      const response = await apiService.post('/customers', backendData);
+      
+      if (response.success) {
+        // Transform backend response to frontend format
+        const frontendCustomer = {
+          id: response.data._id,
+          name: `${response.data.firstName} ${response.data.lastName}`,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+          email: response.data.email,
+          phone: response.data.phone,
+          address: response.data.address?.street || '',
+          birthday: response.data.dateOfBirth ? response.data.dateOfBirth.split('T')[0] : '',
+          dateJoined: response.data.createdAt ? response.data.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          totalSpent: response.data.totalSpent || 0,
+          totalOrders: 0,
+          loyaltyPoints: response.data.loyaltyPoints || 0,
+          loyaltyTier: response.data.tier || 'Bronze',
+          lastPurchase: null,
+          lastMessageSent: null,
+          purchases: [],
+          smsOptIn: customerData.smsOptIn || false,
+          whatsappOptIn: customerData.whatsappOptIn || false,
+          emailOptIn: customerData.emailOptIn || true
+        };
+
+        // Update local state
+        setCustomers([...customers, frontendCustomer]);
+        setShowCustomerForm(false);
+        
+        // Show success message
+        alert('Customer added successfully!');
+      }
+    } catch (error) {
+      console.error('Error adding customer:', error);
+      setError('Failed to add customer. Please try again.');
+      alert('Failed to add customer: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateCustomer = (customerData) => {
-    setCustomers(customers.map(c => 
-      c.id === customerData.id ? customerData : c
-    ));
-    setSelectedCustomer(null);
-    setShowCustomerForm(false);
+  const handleUpdateCustomer = async (customerData) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Transform frontend data to backend format
+      const backendData = {
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        email: customerData.email,
+        phone: customerData.phone,
+        address: {
+          street: customerData.address,
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'Sri Lanka'
+        },
+        dateOfBirth: customerData.birthday || null,
+        customerType: 'regular',
+        loyaltyPoints: customerData.loyaltyPoints || 0,
+        totalSpent: customerData.totalSpent || 0
+      };
+
+      // Make API call to update customer
+      const response = await apiService.put(`/customers/${customerData.id}`, backendData);
+      
+      if (response.success) {
+        // Transform backend response to frontend format
+        const frontendCustomer = {
+          id: response.data._id,
+          name: `${response.data.firstName} ${response.data.lastName}`,
+          firstName: response.data.firstName,
+          lastName: response.data.lastName,
+          email: response.data.email,
+          phone: response.data.phone,
+          address: response.data.address?.street || '',
+          birthday: response.data.dateOfBirth ? response.data.dateOfBirth.split('T')[0] : '',
+          dateJoined: response.data.createdAt ? response.data.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          totalSpent: response.data.totalSpent || 0,
+          totalOrders: customerData.totalOrders || 0,
+          loyaltyPoints: response.data.loyaltyPoints || 0,
+          loyaltyTier: response.data.tier || 'Bronze',
+          lastPurchase: customerData.lastPurchase,
+          lastMessageSent: customerData.lastMessageSent,
+          purchases: customerData.purchases || [],
+          smsOptIn: customerData.smsOptIn || false,
+          whatsappOptIn: customerData.whatsappOptIn || false,
+          emailOptIn: customerData.emailOptIn || true
+        };
+
+        // Update local state
+        setCustomers(customers.map(c => 
+          c.id === customerData.id ? frontendCustomer : c
+        ));
+        setSelectedCustomer(null);
+        setShowCustomerForm(false);
+        
+        // Show success message
+        alert('Customer updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      setError('Failed to update customer. Please try again.');
+      alert('Failed to update customer: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteCustomer = (customerId) => {
+  const handleDeleteCustomer = async (customerId) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
-      setCustomers(customers.filter(c => c.id !== customerId));
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Make API call to delete customer
+        const response = await apiService.delete(`/customers/${customerId}`);
+        
+        if (response.success) {
+          // Update local state
+          setCustomers(customers.filter(c => c.id !== customerId));
+          
+          // Show success message
+          alert('Customer deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting customer:', error);
+        setError('Failed to delete customer. Please try again.');
+        alert('Failed to delete customer: ' + (error.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -879,7 +1030,8 @@ const CustomerManagement = () => {
 // Customer Form Component
 const CustomerForm = ({ customer, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: customer?.name || '',
+    firstName: customer?.firstName || (customer?.name ? customer.name.split(' ')[0] : ''),
+    lastName: customer?.lastName || (customer?.name ? customer.name.split(' ').slice(1).join(' ') : ''),
     email: customer?.email || '',
     phone: customer?.phone || '',
     address: customer?.address || '',
@@ -904,7 +1056,8 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
+    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
+    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!formData.email.trim()) newErrors.email = 'Email is required';
     if (!formData.phone.trim()) newErrors.phone = 'Phone is required';
     if (!formData.address.trim()) newErrors.address = 'Address is required';
@@ -914,9 +1067,16 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
       newErrors.email = 'Please enter a valid email address';
     }
     
-    // Phone validation
-    if (formData.phone && !/^\+?[1-9]\d{1,14}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
+    // Phone validation - More flexible pattern that accepts various formats
+    if (formData.phone) {
+      const phonePattern = /^(\+?[1-9]\d{0,3})?[-.\s]?(\(?[0-9]\d{0,2}\)?)?[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}$/;
+      const simplePattern = /^[\+]?[0-9\s\-\(\)]{7,15}$/;
+      const cleanPhone = formData.phone.replace(/[\s\-\(\)]/g, '');
+      
+      // Check if it's a valid format and has appropriate length
+      if (!simplePattern.test(formData.phone) || cleanPhone.length < 7 || cleanPhone.length > 15) {
+        newErrors.phone = 'Please enter a valid phone number (7-15 digits)';
+      }
     }
     
     setErrors(newErrors);
@@ -946,18 +1106,33 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Full Name</label>
+              <label className="form-label">First Name</label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="firstName"
+                value={formData.firstName}
                 onChange={handleChange}
                 className="form-input w-full"
                 required
               />
-              {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
+              {errors.firstName && <span className="text-red-500 text-sm mt-1">{errors.firstName}</span>}
             </div>
             
+            <div>
+              <label className="form-label">Last Name</label>
+              <input
+                type="text"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                className="form-input w-full"
+                required
+              />
+              {errors.lastName && <span className="text-red-500 text-sm mt-1">{errors.lastName}</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Email</label>
               <input
@@ -970,9 +1145,7 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
               />
               {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
             <div>
               <label className="form-label">Phone</label>
               <input
@@ -981,9 +1154,13 @@ const CustomerForm = ({ customer, onSave, onCancel }) => {
                 value={formData.phone}
                 onChange={handleChange}
                 className="form-input w-full"
+                placeholder="e.g., +94701234567 or 0701234567"
                 required
               />
               {errors.phone && <span className="text-red-500 text-sm mt-1">{errors.phone}</span>}
+              <small className="text-gray-500 text-xs mt-1">
+                Accepted formats: +94701234567, 0701234567, (070) 123-4567
+              </small>
             </div>
             
             <div>
@@ -1076,7 +1253,7 @@ const PromotionForm = ({ promotion, onSave, onCancel }) => {
     title: promotion?.title || '',
     message: promotion?.message || '',
     type: promotion?.type || 'discount',
-    discount: promotion?.discount || 10,
+    discount: promotion?.discount || '',
     validUntil: promotion?.validUntil || '',
     targetTier: promotion?.targetTier || 'All',
     status: promotion?.status || 'draft'
@@ -1097,7 +1274,7 @@ const PromotionForm = ({ promotion, onSave, onCancel }) => {
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.message.trim()) newErrors.message = 'Message is required';
     if (!formData.validUntil) newErrors.validUntil = 'Valid until date is required';
-    if (formData.discount < 0 || formData.discount > 100) newErrors.discount = 'Discount must be between 0 and 100';
+    if (formData.discount !== '' && (parseFloat(formData.discount) < 0 || parseFloat(formData.discount) > 100)) newErrors.discount = 'Discount must be between 0 and 100';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

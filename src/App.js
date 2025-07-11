@@ -7,6 +7,8 @@ import CustomerManagement from './components/CustomerManagement';
 import SupplierManagement from './components/SupplierManagement';
 import ExpenseManagement from './components/ExpenseManagement';
 import UserManagement from './components/UserManagement';
+import InvoiceManagement from './components/InvoiceManagement';
+
 
 function App() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -16,15 +18,16 @@ function App() {
   const [isInstallable, setIsInstallable] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // Check if user is already logged in on app start
+  // Clear any previous login data and force fresh login
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    const loginStatus = localStorage.getItem('isLoggedIn');
+    // Clear localStorage to force fresh login every time
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('token');
     
-    if (savedUser && loginStatus === 'true') {
-      setCurrentUser(JSON.parse(savedUser));
-      setIsLoggedIn(true);
-    }
+    // Ensure user starts at login screen
+    setIsLoggedIn(false);
+    setCurrentUser(null);
 
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
@@ -62,11 +65,14 @@ function App() {
     };
   }, []);
 
-  const handleLogin = (user) => {
+  const handleLogin = (user, token) => {
     setCurrentUser(user);
     setIsLoggedIn(true);
     localStorage.setItem('currentUser', JSON.stringify(user));
     localStorage.setItem('isLoggedIn', 'true');
+    if (token) {
+      localStorage.setItem('token', token);
+    }
   };
 
   const handleLogout = () => {
@@ -75,6 +81,7 @@ function App() {
     setCurrentView('dashboard');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('token');
   };
 
   // PWA install handler
@@ -102,6 +109,7 @@ function App() {
       { id: 'customers', label: 'Customers', icon: '👥', allowedRoles: ['admin', 'manager'] },
       { id: 'suppliers', label: 'Suppliers', icon: '🏢', allowedRoles: ['admin', 'manager'] },
       { id: 'expenses', label: 'Expenses', icon: '💰', allowedRoles: ['admin', 'manager'] },
+      { id: 'invoices', label: 'Invoices', icon: '📄', allowedRoles: ['admin', 'manager'] },
     ];
 
     const adminViews = [
@@ -117,7 +125,7 @@ function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const availableViews = getAvailableViews(currentUser.role);
+  const availableViews = getAvailableViews(typeof currentUser.role === 'object' ? currentUser.role?.name || 'user' : currentUser.role);
 
   const renderComponent = () => {
     switch (currentView) {
@@ -135,6 +143,8 @@ function App() {
         return <ExpenseManagement />;
       case 'users':
         return <UserManagement />;
+      case 'invoices':
+        return <InvoiceManagement />;
       default:
         return <Dashboard />;
     }
@@ -178,10 +188,10 @@ function App() {
               )}
               {!isMobile && (
                 <>
-                  <span className="text-sm text-gray-600">Welcome, {currentUser.name}</span>
-                  <span className={getRoleStyles(currentUser.role)}>
-                    {currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
-                  </span>
+                  <span className="text-sm text-gray-600">Welcome, {typeof currentUser.name === 'object' ? currentUser.name?.name || currentUser.name?.title || 'User' : currentUser.name}</span>
+                                      <span className={getRoleStyles(typeof currentUser.role === 'object' ? currentUser.role?.name || 'user' : currentUser.role)}>
+                      {typeof currentUser.role === 'object' ? (currentUser.role?.name || 'user').charAt(0).toUpperCase() + (currentUser.role?.name || 'user').slice(1) : currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}
+                    </span>
                 </>
               )}
               <button

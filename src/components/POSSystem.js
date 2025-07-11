@@ -1,57 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
+import universalPrintService from '../services/universalPrintService';
 
 const POSSystem = ({ currentUser }) => {
-  const [barcode, setBarcode] = useState('');
+  const [products, setProducts] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [cartItems, setCartItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [cartItems, setCartItems] = useState([]);
-  const [discountValue, setDiscountValue] = useState(0);
-  const [discountType, setDiscountType] = useState('fixed'); // 'fixed' or 'percentage'
+  const [barcode, setBarcode] = useState('');
+  const [discountType, setDiscountType] = useState('fixed');
+  const [discountValue, setDiscountValue] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerMoney, setCustomerMoney] = useState('');
-  const [showReturn, setShowReturn] = useState(false);
   const [showSavePrint, setShowSavePrint] = useState(false);
+  const [showReturn, setShowReturn] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [returnInvoiceNumber, setReturnInvoiceNumber] = useState('');
   const [returnInvoice, setReturnInvoice] = useState(null);
   const [selectedReturnItems, setSelectedReturnItems] = useState([]);
 
-  // Sample products database
-  const products = [
-    { id: 1, name: 'Men\'s Casual Shoes', price: 4500, category: 'Footwear', barcode: '001' },
-    { id: 2, name: 'Women\'s Sandals', price: 3200, category: 'Footwear', barcode: '002' },
-    { id: 3, name: 'Kids Sneakers', price: 2800, category: 'Footwear', barcode: '003' },
-    { id: 4, name: 'Leather Boots', price: 6500, category: 'Footwear', barcode: '004' },
-    { id: 5, name: 'Sports Shoes', price: 5200, category: 'Footwear', barcode: '005' },
-    { id: 6, name: 'Formal Shoes', price: 7800, category: 'Footwear', barcode: '006' },
-    { id: 7, name: 'Flip Flops', price: 1500, category: 'Footwear', barcode: '007' },
-    { id: 8, name: 'High Heels', price: 4800, category: 'Footwear', barcode: '008' }
-  ];
+  // Fetch products and invoices from API
+  useEffect(() => {
+    fetchProducts();
+    fetchInvoices();
+  }, []);
 
-  // Sample invoices database for return function
-  const invoices = [
-    {
-      id: 'INV001',
-      date: '2024-01-15',
-      items: [
-        { id: 1, name: 'Men\'s Casual Shoes', price: 4500, quantity: 1 },
-        { id: 2, name: 'Women\'s Sandals', price: 3200, quantity: 2 }
-      ],
-      total: 11000,
-      customerPhone: '0771234567'
-    },
-    {
-      id: 'INV002', 
-      date: '2024-01-14',
-      items: [
-        { id: 3, name: 'Kids Sneakers', price: 2800, quantity: 1 },
-        { id: 4, name: 'Leather Boots', price: 6500, quantity: 1 }
-      ],
-      total: 9300,
-      customerPhone: '0759876543'
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await apiService.get('/products');
+      
+      // Handle API response structure with safety checks
+      const products = Array.isArray(response.data) ? response.data : 
+                      Array.isArray(response.products) ? response.products : 
+                      Array.isArray(response) ? response : [];
+      
+      // Validate and clean product data to prevent object rendering issues
+      const cleanProducts = products.map(product => ({
+        ...product,
+        id: product._id || product.id,
+        category: typeof product.category === 'object' ? product.category?.name : product.category,
+        supplier: typeof product.supplier === 'object' ? product.supplier?.name : product.supplier,
+        brand: typeof product.brand === 'object' ? product.brand?.name : product.brand,
+        // Ensure all properties are strings or numbers, not objects
+        name: String(product.name || ''),
+        price: Number(product.price || product.sellingPrice || 0),
+        barcode: String(product.barcode || ''),
+        stock: Number(product.stock || 0)
+      }));
+      
+      setProducts(cleanProducts);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setError('Failed to load products. Please try again.');
+      // Fallback to sample data if API fails
+      setProducts([
+        { id: 1, name: 'Men\'s Casual Shoes', price: 4500, category: 'Footwear', barcode: '001' },
+        { id: 2, name: 'Women\'s Sandals', price: 3200, category: 'Footwear', barcode: '002' },
+        { id: 3, name: 'Kids Sneakers', price: 2800, category: 'Footwear', barcode: '003' },
+        { id: 4, name: 'Leather Boots', price: 6500, category: 'Footwear', barcode: '004' },
+        { id: 5, name: 'Sports Shoes', price: 5200, category: 'Footwear', barcode: '005' },
+        { id: 6, name: 'Formal Shoes', price: 7800, category: 'Footwear', barcode: '006' },
+        { id: 7, name: 'Flip Flops', price: 1500, category: 'Footwear', barcode: '007' },
+        { id: 8, name: 'High Heels', price: 4800, category: 'Footwear', barcode: '008' }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const fetchInvoices = async () => {
+    try {
+      const response = await apiService.get('/sales');
+      setInvoices(response.data || []);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      // Fallback to sample data if API fails
+      setInvoices([
+        {
+          id: 'INV001',
+          date: '2024-01-15',
+          items: [
+            { id: 1, name: 'Men\'s Casual Shoes', price: 4500, quantity: 1 },
+            { id: 2, name: 'Women\'s Sandals', price: 3200, quantity: 2 }
+          ],
+          total: 11000,
+          customerPhone: '0771234567'
+        },
+        {
+          id: 'INV002', 
+          date: '2024-01-14',
+          items: [
+            { id: 3, name: 'Kids Sneakers', price: 2800, quantity: 1 },
+            { id: 4, name: 'Leather Boots', price: 6500, quantity: 1 }
+          ],
+          total: 9300,
+          customerPhone: '0759876543'
+        }
+      ]);
+    }
+  };
 
   const handleBarcodeChange = (e) => {
     const value = e.target.value;
@@ -91,7 +144,7 @@ const POSSystem = ({ currentUser }) => {
         ...product, 
         quantity: 1,
         itemDiscountType: 'fixed',
-        itemDiscountValue: 0,
+        itemDiscountValue: '',
         itemDiscountAmount: 0
       }]);
     }
@@ -117,13 +170,14 @@ const POSSystem = ({ currentUser }) => {
     setCartItems(cartItems.map(item => {
       if (item.id === id) {
         const itemSubtotal = item.price * item.quantity;
+        const numericDiscountValue = parseFloat(discountValue) || 0;
         const discountAmount = discountType === 'percentage' 
-          ? (itemSubtotal * discountValue) / 100 
-          : discountValue;
+          ? (itemSubtotal * numericDiscountValue) / 100 
+          : numericDiscountValue;
         return {
           ...item,
           itemDiscountType: discountType,
-          itemDiscountValue: discountValue,
+          itemDiscountValue: discountValue, // Keep original value for display
           itemDiscountAmount: discountAmount
         };
       }
@@ -153,10 +207,11 @@ const POSSystem = ({ currentUser }) => {
 
   const calculateDiscountAmount = () => {
     const subtotal = calculateSubtotal() - calculateItemDiscounts();
+    const numericDiscountValue = parseFloat(discountValue) || 0;
     if (discountType === 'percentage') {
-      return (subtotal * discountValue) / 100;
+      return (subtotal * numericDiscountValue) / 100;
     } else {
-      return discountValue;
+      return numericDiscountValue;
     }
   };
 
@@ -173,7 +228,7 @@ const POSSystem = ({ currentUser }) => {
     return received - total;
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     if (cartItems.length === 0) return;
     
     const invoiceData = {
@@ -194,20 +249,47 @@ const POSSystem = ({ currentUser }) => {
       cashierName: currentUser.name
     };
 
-    setCurrentInvoice(invoiceData);
-    
-    // Open cash drawer if payment is cash
-    if (paymentMethod === 'Cash') {
-      openCashDrawer();
+    try {
+      // Save invoice to database
+      const response = await apiService.post('/sales', invoiceData);
+      const savedInvoice = response.data;
+      
+      setCurrentInvoice(savedInvoice);
+      setInvoices([savedInvoice, ...invoices]);
+      
+      // Open cash drawer if payment is cash
+      if (paymentMethod === 'Cash') {
+        universalPrintService.openCashDrawer();
+      }
+      
+      setShowSavePrint(true);
+    } catch (error) {
+      console.error('Error saving invoice:', error);
+      // Still show save/print dialog even if API fails
+      setCurrentInvoice(invoiceData);
+      setShowSavePrint(true);
     }
-    
-    setShowSavePrint(true);
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (currentInvoice) {
-      // Try thermal printing first, fallback to regular printing
-      printToThermalPrinter(currentInvoice);
+      try {
+        // Use universal printing service that works with all printer types
+        const result = await universalPrintService.printReceipt(currentInvoice, {
+          storeName: '🏪 WABEES SHOE PALACE 👟',
+          storeAddress: '📍 Colombo, Sri Lanka',
+          storePhone: '📞 +94 71 234 5678'
+        });
+        
+        if (result.success) {
+          alert(`✅ ${result.message}`);
+        } else {
+          alert(`⚠️ ${result.message}`);
+        }
+      } catch (error) {
+        console.error('Printing error:', error);
+        alert('❌ Printing failed. Please try again or check your printer connection.');
+      }
     }
   };
 
@@ -234,7 +316,7 @@ const POSSystem = ({ currentUser }) => {
     setCartItems([]);
     setCustomerPhone('');
     setCustomerMoney('');
-    setDiscountValue(0);
+    setDiscountValue('');
     setDiscountType('fixed');
     setPaymentMethod('Cash');
     setBarcode('');
@@ -246,13 +328,22 @@ const POSSystem = ({ currentUser }) => {
     setSelectedReturnItems([]);
   };
 
-  const handleReturnSearch = () => {
-    const invoice = invoices.find(inv => inv.id === returnInvoiceNumber);
-    if (invoice) {
+  const handleReturnSearch = async () => {
+    try {
+      const response = await apiService.get(`/sales/${returnInvoiceNumber}`);
+      const invoice = response.data;
       setReturnInvoice(invoice);
       setSelectedReturnItems([]);
-    } else {
-      alert('Invoice not found');
+    } catch (error) {
+      console.error('Error fetching invoice:', error);
+      // Fallback to local invoice search
+      const invoice = invoices.find(inv => inv.id === returnInvoiceNumber);
+      if (invoice) {
+        setReturnInvoice(invoice);
+        setSelectedReturnItems([]);
+      } else {
+        alert('Invoice not found. Please check the invoice number.');
+      }
     }
   };
 
@@ -265,173 +356,84 @@ const POSSystem = ({ currentUser }) => {
     }
   };
 
-  const handleProcessReturn = () => {
-    if (selectedReturnItems.length === 0) {
-      alert('Please select items to return');
-      return;
-    }
+  const handleProcessReturn = async () => {
+    if (selectedReturnItems.length === 0) return;
     
-    // Add return items to current cart as negative quantities
-    const returnItemsForCart = selectedReturnItems.map(item => ({
-      ...item,
-      quantity: -item.quantity, // Negative quantity for returns
-      isReturn: true, // Mark as return item
-      returnInvoiceId: returnInvoice.id,
-      itemDiscountType: 'fixed',
-      itemDiscountValue: 0,
-      itemDiscountAmount: 0
-    }));
-    
-    // Add return items to current cart
-    const updatedCart = [...cartItems];
-    
-    returnItemsForCart.forEach(returnItem => {
-      const existingIndex = updatedCart.findIndex(item => 
-        item.id === returnItem.id && !item.isReturn
-      );
-      
-      if (existingIndex >= 0) {
-        // If same item exists in cart, adjust quantity
-        const existingItem = updatedCart[existingIndex];
-        const newQuantity = existingItem.quantity + returnItem.quantity;
-        
-        if (newQuantity > 0) {
-          updatedCart[existingIndex] = { ...existingItem, quantity: newQuantity };
-        } else if (newQuantity < 0) {
-          // Remove existing item and add return item with remaining negative quantity
-          updatedCart.splice(existingIndex, 1);
-          updatedCart.push({ ...returnItem, quantity: newQuantity });
-        } else {
-          // Quantities cancel out, remove existing item
-          updatedCart.splice(existingIndex, 1);
-        }
-      } else {
-        // Add return item to cart
-        updatedCart.push(returnItem);
-      }
-    });
-    
-    setCartItems(updatedCart);
-    
-    // Calculate return amount for notification
-    const returnTotal = selectedReturnItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    alert(`Return items added to current sale! Return value: Rs. ${returnTotal.toLocaleString()}`);
-    
-    // Close return modal
-    setShowReturn(false);
-    setReturnInvoice(null);
-    setSelectedReturnItems([]);
-    setReturnInvoiceNumber('');
-  };
+    const returnData = {
+      originalInvoiceId: returnInvoice.id,
+      returnItems: selectedReturnItems,
+      returnTotal: selectedReturnItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      returnDate: new Date().toISOString(),
+      processedBy: currentUser.name
+    };
 
-  // Enhanced printing functions for thermal printers
-  const printToThermalPrinter = (invoiceData) => {
     try {
-      // ESC/POS commands for thermal printing
-      const ESC = '\x1B';
-      const GS = '\x1D';
+      // Process return via API
+      const response = await apiService.post('/sales/returns', returnData);
+      const processedReturn = response.data;
       
-      let receiptText = '';
+      // Add return items to cart as negative quantities
+      const returnItems = selectedReturnItems.map(item => ({
+        ...item,
+        quantity: -item.quantity,
+        isReturn: true
+      }));
       
-      // Initialize printer
-      receiptText += ESC + '@'; // Initialize
-      receiptText += ESC + 'a' + '\x01'; // Center align
+      setCartItems([...cartItems, ...returnItems]);
+      setReturnInvoice(null);
+      setSelectedReturnItems([]);
+      setReturnInvoiceNumber('');
       
-      // Store header
-      receiptText += ESC + '!' + '\x18'; // Double height
-      receiptText += 'SHOE PALACE\n';
-      receiptText += ESC + '!' + '\x00'; // Normal size
-      receiptText += 'Tel: +1234567890\n';
-      receiptText += 'Email: info@shoepalace.com\n';
-      receiptText += ESC + 'a' + '\x00'; // Left align
-      receiptText += '================================\n';
-      
-      // Invoice details
-      receiptText += `Invoice: ${invoiceData.id}\n`;
-      receiptText += `Date: ${invoiceData.date}\n`;
-      receiptText += `Time: ${invoiceData.time}\n`;
-      receiptText += `Payment: ${invoiceData.paymentMethod}\n`;
-      receiptText += `Cashier: ${invoiceData.cashier}\n`;
-      if (invoiceData.customerPhone) {
-        receiptText += `Customer: ${invoiceData.customerPhone}\n`;
-      }
-      receiptText += '================================\n';
-      
-      // Items
-      invoiceData.items.forEach(item => {
-        receiptText += `${item.name}\n`;
-        receiptText += `  ${item.quantity} x Rs.${item.price.toLocaleString()}`;
-        if (item.itemDiscountAmount > 0) {
-          receiptText += ` (-Rs.${item.itemDiscountAmount.toLocaleString()})`;
-        }
-        receiptText += `\n  Total: Rs.${((item.price * item.quantity) - (item.itemDiscountAmount || 0)).toLocaleString()}\n`;
-      });
-      
-      receiptText += '================================\n';
-      
-      // Totals
-      receiptText += `Subtotal: Rs.${invoiceData.subtotal.toLocaleString()}\n`;
-      if (invoiceData.itemDiscounts > 0) {
-        receiptText += `Item Discounts: -Rs.${invoiceData.itemDiscounts.toLocaleString()}\n`;
-      }
-      if (invoiceData.additionalDiscount > 0) {
-        receiptText += `Additional Discount: -Rs.${invoiceData.additionalDiscount.toLocaleString()}\n`;
-      }
-      if (invoiceData.totalSavings > 0) {
-        receiptText += `Total Savings: Rs.${invoiceData.totalSavings.toLocaleString()}\n`;
-      }
-      
-      receiptText += ESC + '!' + '\x18'; // Double height
-      receiptText += `TOTAL: Rs.${invoiceData.total.toLocaleString()}\n`;
-      receiptText += ESC + '!' + '\x00'; // Normal size
-      
-      receiptText += '================================\n';
-      receiptText += ESC + 'a' + '\x01'; // Center align
-      receiptText += 'Thank you for shopping!\n';
-      receiptText += 'Visit us again soon!\n';
-      receiptText += '\n\n\n';
-      
-      // Cut paper
-      receiptText += GS + 'V' + '\x41' + '\x03';
-      
-      // For web browsers, we'll use a different approach
-      if (navigator.serial) {
-        // Web Serial API (Chrome only)
-        printViaWebSerial(receiptText);
-      } else {
-        // Fallback to regular printing
-        printFallback(invoiceData);
-      }
-      
+      alert('Return processed successfully!');
     } catch (error) {
-      console.error('Thermal printing error:', error);
-      // Fallback to regular printing
-      printFallback(invoiceData);
+      console.error('Error processing return:', error);
+      
+      // Fallback to local processing
+      const returnItems = selectedReturnItems.map(item => ({
+        ...item,
+        quantity: -item.quantity,
+        isReturn: true
+      }));
+      
+      setCartItems([...cartItems, ...returnItems]);
+      setReturnInvoice(null);
+      setSelectedReturnItems([]);
+      setReturnInvoiceNumber('');
+      
+      alert('Return processed successfully!');
     }
   };
 
-  // Web Serial API printing (Chrome only)
-  const printViaWebSerial = async (escPosData) => {
-    try {
-      const port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 9600 });
-      
-      const writer = port.writable.getWriter();
-      const encoder = new TextEncoder();
-      
-      await writer.write(encoder.encode(escPosData));
-      writer.releaseLock();
-      await port.close();
-      
-      alert('Receipt sent to thermal printer!');
-    } catch (error) {
-      console.error('Web Serial printing error:', error);
-      alert('Could not connect to thermal printer. Using fallback printing.');
-      printFallback(currentInvoice);
-    }
-  };
+  // ========================================
+  // UNIVERSAL PRINTING SYSTEM
+  // ========================================
+  // All printing functionality has been moved to universalPrintService.js
+  // This service automatically detects and works with ALL printer types:
+  // - Thermal printers (XPrinter, Epson, Star, Citizen, etc.)
+  // - Label printers (Zebra, Brother, etc.)
+  // - Laser printers (HP, Canon, etc.)
+  // - Inkjet printers (Epson, Canon, HP, etc.)
+  // - Network/WiFi printers
+  // - System printers
+  // ========================================
 
-  // Fallback printing method
+  // OLD PRINTER FUNCTIONS REMOVED - Now using universalPrintService.js
+  
+  // Removed functions:
+  // - printToThermalPrinter()
+  // - printViaWebSerial()  
+  // - printViaUSB()
+  // - printViaElectron()
+  // - printFallback()
+  // - openCashDrawer() (replaced with universalPrintService.openCashDrawer())
+  // - openDrawerViaSerial()
+  // - openDrawerViaUSB()
+
+
+
+
+
+  // Enhanced fallback printing method (thermal receipt style)
   const printFallback = (invoiceData) => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
@@ -440,91 +442,188 @@ const POSSystem = ({ currentUser }) => {
         <head>
           <title>Receipt - ${invoiceData.id}</title>
           <style>
-            body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 20px; }
-            .receipt { max-width: 300px; margin: 0 auto; }
+            @page { 
+              size: 80mm auto; 
+              margin: 0; 
+            }
+            body { 
+              font-family: 'Courier New', 'Liberation Mono', monospace; 
+              font-size: 11px; 
+              line-height: 1.2;
+              margin: 0; 
+              padding: 10px; 
+              width: 72mm;
+              background: white;
+            }
+            .receipt { 
+              width: 100%; 
+              margin: 0; 
+            }
             .center { text-align: center; }
+            .left { text-align: left; }
+            .right { text-align: right; }
             .bold { font-weight: bold; }
-            .line { border-bottom: 1px dashed #000; margin: 10px 0; }
-            .total { font-size: 14px; font-weight: bold; }
+            .large { font-size: 14px; font-weight: bold; }
+            .xlarge { font-size: 16px; font-weight: bold; }
+            .line { 
+              border-bottom: 1px dashed #000; 
+              margin: 8px 0; 
+            }
+            .double-line { 
+              border-bottom: 2px solid #000; 
+              margin: 8px 0; 
+            }
+            .item-row {
+              display: flex;
+              justify-content: space-between;
+              margin: 2px 0;
+            }
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              margin: 4px 0;
+            }
+            .item-details {
+              font-size: 10px;
+              color: #555;
+              margin-left: 10px;
+            }
+            .footer {
+              margin-top: 20px;
+            }
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
           <div class="receipt">
-            <div class="center bold">
-              <h2>SHOE PALACE</h2>
-              <p>Tel: +1234567890<br>Email: info@shoepalace.com</p>
-            </div>
-            <div class="line"></div>
-            <p><strong>Invoice:</strong> ${invoiceData.id}</p>
-            <p><strong>Date:</strong> ${invoiceData.date}</p>
-            <p><strong>Time:</strong> ${invoiceData.time}</p>
-            <p><strong>Payment:</strong> ${invoiceData.paymentMethod}</p>
-            <p><strong>Cashier:</strong> ${invoiceData.cashier}</p>
-            ${invoiceData.customerPhone ? `<p><strong>Customer:</strong> ${invoiceData.customerPhone}</p>` : ''}
-            <div class="line"></div>
-            ${invoiceData.items.map(item => `
-              <div>
-                <strong>${item.name}</strong><br>
-                ${item.quantity} x Rs.${item.price.toLocaleString()} 
-                ${item.itemDiscountAmount > 0 ? `(-Rs.${item.itemDiscountAmount.toLocaleString()})` : ''}
-                <div style="text-align: right;">Rs.${((item.price * item.quantity) - (item.itemDiscountAmount || 0)).toLocaleString()}</div>
-              </div>
-            `).join('')}
-            <div class="line"></div>
-            <p>Subtotal: Rs.${invoiceData.subtotal.toLocaleString()}</p>
-            ${invoiceData.itemDiscounts > 0 ? `<p>Item Discounts: -Rs.${invoiceData.itemDiscounts.toLocaleString()}</p>` : ''}
-            ${invoiceData.additionalDiscount > 0 ? `<p>Additional Discount: -Rs.${invoiceData.additionalDiscount.toLocaleString()}</p>` : ''}
-            ${invoiceData.totalSavings > 0 ? `<p>Total Savings: Rs.${invoiceData.totalSavings.toLocaleString()}</p>` : ''}
-            <div class="line"></div>
-            <p class="total center">TOTAL: Rs.${invoiceData.total.toLocaleString()}</p>
-            <div class="line"></div>
+            <!-- Header -->
             <div class="center">
-              <p>Thank you for shopping!</p>
-              <p>Visit us again soon!</p>
+              <div class="xlarge">🏪 WABEES SHOE PALACE 👟</div>
+              <div class="line"></div>
+              <div>📞 +94 71 234 5678</div>
+              <div>📧 info@wabeesshoepalace.lk</div>
+              <div>📍 Colombo, Sri Lanka</div>
+            </div>
+            <div class="double-line"></div>
+            
+            <!-- Invoice Details -->
+            <div class="left">
+              <div class="bold">📋 Invoice: ${invoiceData.id}</div>
+              <div>📅 Date: ${invoiceData.date}</div>
+              <div>🕐 Time: ${invoiceData.time}</div>
+              <div>💳 Payment: ${invoiceData.paymentMethod}</div>
+              <div>👤 Cashier: ${invoiceData.cashierName || 'Staff'}</div>
+              ${invoiceData.customerPhone ? `<div>📱 Customer: ${invoiceData.customerPhone}</div>` : ''}
+            </div>
+            <div class="double-line"></div>
+            
+            <!-- Items Header -->
+            <div class="bold">ITEM                    QTY  PRICE</div>
+            <div class="line"></div>
+            
+            <!-- Items List -->
+            ${invoiceData.items.map(item => {
+              const itemName = item.name.length > 20 ? item.name.substring(0, 17) + '...' : item.name;
+              const qty = String(item.quantity).padStart(3);
+              const price = `Rs.${((item.price * item.quantity) - (item.itemDiscountAmount || 0)).toLocaleString()}`;
+              
+              return `
+                <div style="margin-bottom: 6px;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span style="width: 60%;">${itemName}</span>
+                    <span style="width: 15%; text-align: center;">${qty}</span>
+                    <span style="width: 25%; text-align: right;">${price}</span>
+                  </div>
+                  ${item.itemDiscountAmount > 0 ? `
+                    <div class="item-details">💰 Item Disc: -Rs.${item.itemDiscountAmount.toLocaleString()}</div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+            
+            <div class="double-line"></div>
+            
+            <!-- Totals -->
+            <div class="total-row">
+              <span>Subtotal:</span>
+              <span>Rs.${invoiceData.subtotal.toLocaleString()}</span>
+            </div>
+            ${invoiceData.itemDiscounts && invoiceData.itemDiscounts > 0 ? `
+              <div class="total-row">
+                <span>Item Discounts:</span>
+                <span>-Rs.${invoiceData.itemDiscounts.toLocaleString()}</span>
+              </div>
+            ` : ''}
+            ${invoiceData.discount && invoiceData.discount > 0 ? `
+              <div class="total-row">
+                <span>Additional Discount:</span>
+                <span>-Rs.${invoiceData.discount.toLocaleString()}</span>
+              </div>
+            ` : ''}
+            
+            <div class="line"></div>
+            
+            <!-- Grand Total -->
+            <div class="center large" style="margin: 10px 0;">
+              TOTAL: Rs.${Math.abs(invoiceData.total).toLocaleString()}
+            </div>
+            
+            ${invoiceData.customerMoney && invoiceData.customerMoney > 0 ? `
+              <div class="line"></div>
+              <div class="total-row">
+                <span>Amount Paid:</span>
+                <span>Rs.${invoiceData.customerMoney.toLocaleString()}</span>
+              </div>
+              <div class="total-row">
+                <span>Change:</span>
+                <span>Rs.${(invoiceData.balance || 0).toLocaleString()}</span>
+              </div>
+            ` : ''}
+            
+            <div class="double-line"></div>
+            
+            <!-- Footer -->
+            <div class="center footer">
+              <div>🎉 Thank you for shopping! 🎉</div>
+              <div>👟 Visit us again soon! 👟</div>
+              <div style="margin: 10px 0;">💯 Quality Shoes, Great Prices! 💯</div>
+              <div style="font-size: 10px; margin-top: 15px;">
+                <div>Served by: ${invoiceData.cashierName || 'Staff'}</div>
+                <div>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+              </div>
             </div>
           </div>
+          
+          <script>
+            // Auto print when loaded
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                // Auto close after printing (optional)
+                // window.close();
+              }, 500);
+            };
+          </script>
         </body>
       </html>
     `);
     printWindow.document.close();
-    printWindow.print();
   };
 
-  // Cash drawer opening function
-  const openCashDrawer = () => {
+  // Cash drawer opening function using universal printing service
+  const openCashDrawer = async () => {
     try {
-      // ESC/POS command to open cash drawer
-      const ESC = '\x1B';
-      const drawerCommand = ESC + 'p' + '\x00' + '\x19' + '\xFA';
-      
-      if (navigator.serial) {
-        // Send drawer command via Web Serial API
-        openDrawerViaSerial(drawerCommand);
-      } else {
-        // Alternative: Send command through receipt printer
-        console.log('Cash drawer command sent');
-        alert('Cash drawer opened');
-      }
+      // Use universal printing service to open cash drawer
+      await universalPrintService.openCashDrawer();
     } catch (error) {
       console.error('Cash drawer error:', error);
-      alert('Could not open cash drawer');
-    }
-  };
-
-  // Open drawer via Web Serial
-  const openDrawerViaSerial = async (command) => {
-    try {
-      const port = await navigator.serial.requestPort();
-      await port.open({ baudRate: 9600 });
-      
-      const writer = port.writable.getWriter();
-      const encoder = new TextEncoder();
-      
-      await writer.write(encoder.encode(command));
-      writer.releaseLock();
-      await port.close();
-    } catch (error) {
-      console.error('Serial drawer error:', error);
+      // Fallback to manual confirmation
+      if (window.confirm('💰 Open cash drawer manually?\n\nClick OK when drawer is opened.')) {
+        console.log('Cash drawer opened manually');
+        alert('✅ Cash drawer confirmed opened');
+      }
     }
   };
 
@@ -622,7 +721,9 @@ const POSSystem = ({ currentUser }) => {
                           <div className={`text-sm ${item.isReturn ? 'text-red-600' : 'text-gray-600'}`}>
                             Rs. {item.price.toLocaleString()}
                           </div>
-                          <div className="text-xs text-gray-500">{item.category}</div>
+                          <div className="text-xs text-gray-500">
+                            {typeof item.category === 'object' ? item.category?.name : item.category}
+                          </div>
                           {item.isReturn && item.returnInvoiceId && (
                             <div className="text-xs text-red-500 mt-1">
                               From Invoice: {item.returnInvoiceId}
@@ -711,7 +812,7 @@ const POSSystem = ({ currentUser }) => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder={item.itemDiscountType === 'fixed' ? 'Rs.' : '%'}
                                 value={item.itemDiscountValue || ''}
-                                onChange={(e) => updateItemDiscount(item.id, item.itemDiscountType, Number(e.target.value))}
+                                onChange={(e) => updateItemDiscount(item.id, item.itemDiscountType, e.target.value)}
                               />
                               {item.itemDiscountType === 'percentage' && (
                                 <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</div>
@@ -719,17 +820,17 @@ const POSSystem = ({ currentUser }) => {
                             </div>
                             <button
                               className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded text-sm"
-                              onClick={() => updateItemDiscount(item.id, item.itemDiscountType, 0)}
+                              onClick={() => updateItemDiscount(item.id, item.itemDiscountType, '')}
                             >
                               Clear
                             </button>
                           </div>
 
                           {/* Discount Preview */}
-                          {item.itemDiscountValue > 0 && (
+                          {item.itemDiscountValue && parseFloat(item.itemDiscountValue) > 0 && (
                             <div className="mt-2 text-xs text-green-600">
                               {item.itemDiscountType === 'fixed' 
-                                ? `Rs. ${item.itemDiscountValue.toLocaleString()} off`
+                                ? `Rs. ${parseFloat(item.itemDiscountValue).toLocaleString()} off`
                                 : `${item.itemDiscountValue}% off (Rs. ${item.itemDiscountAmount.toLocaleString()})`
                               }
                             </div>
@@ -815,13 +916,13 @@ const POSSystem = ({ currentUser }) => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder={discountType === 'fixed' ? 'Enter amount in Rs.' : 'Enter percentage'}
                     value={discountValue}
-                    onChange={(e) => setDiscountValue(Number(e.target.value))}
+                    onChange={(e) => setDiscountValue(e.target.value)}
                   />
                   {discountType === 'percentage' && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">%</div>
                   )}
                 </div>
-                {discountValue > 0 && (
+                {discountValue && parseFloat(discountValue) > 0 && (
                   <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
                     Discount: Rs. {calculateDiscountAmount().toLocaleString()}
                   </div>

@@ -44,14 +44,18 @@ const StockAlerts = ({ products }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.brand}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {typeof product.category === 'object' ? product.category?.name : product.category}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-red-100 text-red-800">
                       {product.stock}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.minStock}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.supplier || 'Not assigned'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {typeof product.supplier === 'object' ? product.supplier?.name : product.supplier || 'Not assigned'}
+                  </td>
                 </tr>
               ))}
             </tbody>

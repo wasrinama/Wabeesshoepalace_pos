@@ -1,59 +1,115 @@
 import React, { useState, useEffect } from 'react';
-
-// Sample expense data with various categories
-const sampleExpenses = [
-  { id: 1, date: '2024-03-01', category: 'Rent', description: 'Monthly store rent', amount: 75000, type: 'Monthly', isRecurring: true },
-  { id: 2, date: '2024-03-02', category: 'Electricity Bills', description: 'CEB monthly charges', amount: 12500, type: 'Monthly', isRecurring: true },
-  { id: 3, date: '2024-03-03', category: 'Employee Salaries', description: 'Sales staff salary', amount: 45000, type: 'Monthly', isRecurring: true },
-  { id: 4, date: '2024-03-04', category: 'Shop Maintenance', description: 'AC repair and cleaning', amount: 8500, type: 'One-time', isRecurring: false },
-  { id: 5, date: '2024-03-05', category: 'Transport Charges', description: 'Supplier delivery charges', amount: 3200, type: 'Weekly', isRecurring: true },
-  { id: 6, date: '2024-03-06', category: 'Marketing', description: 'Facebook ads campaign', amount: 15000, type: 'Monthly', isRecurring: true },
-  { id: 7, date: '2024-03-07', category: 'Stationery & Others', description: 'Receipt rolls and pens', amount: 2800, type: 'One-time', isRecurring: false },
-  { id: 8, date: '2024-03-08', category: 'Employee Salaries', description: 'Manager salary', amount: 65000, type: 'Monthly', isRecurring: true },
-  { id: 9, date: '2024-03-09', category: 'Shop Maintenance', description: 'Daily cleaning service', amount: 5000, type: 'Monthly', isRecurring: true },
-  { id: 10, date: '2024-03-10', category: 'Transport Charges', description: 'Customer delivery', amount: 800, type: 'One-time', isRecurring: false }
-];
-
-const expenseCategories = [
-  'Rent',
-  'Electricity Bills',
-  'Employee Salaries',
-  'Shop Maintenance',
-  'Transport Charges',
-  'Marketing',
-  'Stationery & Others'
-];
+import apiService from '../services/apiService';
 
 const ExpenseManagement = () => {
-  const [expenses, setExpenses] = useState(sampleExpenses);
-  const [filteredExpenses, setFilteredExpenses] = useState(sampleExpenses);
-  const [showForm, setShowForm] = useState(false);
-  const [editingExpense, setEditingExpense] = useState(null);
-  const [dateFilter, setDateFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [filteredExpenses, setFilteredExpenses] = useState([]);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [dateRange, setDateRange] = useState('30days');
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
 
-  // Form state
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    category: '',
-    description: '',
-    amount: '',
-    type: 'One-time',
-    isRecurring: false
-  });
-
-  // Apply filters
+  // Load expense data
   useEffect(() => {
+    loadExpenseData();
+  }, []);
+
+  // Filter expenses when data or filters change
+  useEffect(() => {
+    filterExpenses();
+  }, [expenses, searchTerm, categoryFilter, dateRange]);
+
+  const loadExpenseData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await apiService.get('/expenses');
+      
+      // Transform backend expense data to frontend format
+      const backendExpenses = response.data || [];
+      const frontendExpenses = backendExpenses.map(expense => transformBackendToFrontend(expense));
+      
+      setExpenses(frontendExpenses);
+
+    } catch (error) {
+      console.error('Error loading expense data:', error);
+      setError('Failed to load expense data. Please try again.');
+      
+      // Fallback to sample data if API fails
+      setExpenses([
+        {
+          id: '1',
+          date: '2024-03-10',
+          category: 'Rent',
+          description: 'Monthly store rent',
+          amount: 75000,
+          type: 'Monthly',
+          isRecurring: true,
+          receipt: 'receipt_001.pdf',
+          createdBy: 'Admin',
+          approvedBy: 'Manager',
+          status: 'Approved'
+        },
+        {
+          id: '2',
+          date: '2024-03-10',
+          category: 'Utilities',
+          description: 'Electricity bill',
+          amount: 12500,
+          type: 'Monthly',
+          isRecurring: true,
+          receipt: 'receipt_002.pdf',
+          createdBy: 'Admin',
+          approvedBy: 'Manager',
+          status: 'Approved'
+        },
+        {
+          id: '3',
+          date: '2024-03-09',
+          category: 'Marketing',
+          description: 'Facebook ads campaign',
+          amount: 15000,
+          type: 'One-time',
+          isRecurring: false,
+          receipt: 'receipt_003.pdf',
+          createdBy: 'Manager',
+          approvedBy: 'Admin',
+          status: 'Approved'
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterExpenses = () => {
     let filtered = expenses;
 
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(expense => 
+        expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        expense.category.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Category filter
+    if (categoryFilter !== 'All') {
+      filtered = filtered.filter(expense => expense.category === categoryFilter);
+    }
+
     // Date filter
-    if (dateFilter !== 'all') {
+    if (dateRange !== 'All') {
       const today = new Date();
       const filterDate = new Date();
       
-      switch (dateFilter) {
+      switch (dateRange) {
         case '7days':
           filterDate.setDate(today.getDate() - 7);
           break;
@@ -67,35 +123,23 @@ const ExpenseManagement = () => {
           break;
       }
       
-      if (dateFilter !== 'all') {
-        filtered = filtered.filter(expense => new Date(expense.date) >= filterDate);
+      filtered = filtered.filter(expense => new Date(expense.date) >= filterDate);
+    }
+
+    // Sorting
+    filtered.sort((a, b) => {
+      if (sortBy === 'date') {
+        return sortOrder === 'desc' ? new Date(b.date).getTime() - new Date(a.date).getTime() : new Date(a.date).getTime() - new Date(b.date).getTime();
+      } else if (sortBy === 'category') {
+        return sortOrder === 'desc' ? b.category.localeCompare(a.category) : a.category.localeCompare(b.category);
+      } else if (sortBy === 'amount') {
+        return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
       }
-    }
-
-    // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(expense => expense.category === categoryFilter);
-    }
-
-    // Type filter
-    if (typeFilter !== 'all') {
-      if (typeFilter === 'recurring') {
-        filtered = filtered.filter(expense => expense.isRecurring);
-      } else if (typeFilter === 'one-time') {
-        filtered = filtered.filter(expense => !expense.isRecurring);
-      }
-    }
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(expense => 
-        expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        expense.category.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+      return 0;
+    });
 
     setFilteredExpenses(filtered);
-  }, [expenses, dateFilter, categoryFilter, typeFilter, searchTerm]);
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-LK', {
@@ -120,62 +164,140 @@ const ExpenseManagement = () => {
     return categoryTotals;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (editingExpense) {
-      // Update existing expense
-      setExpenses(expenses.map(expense => 
-        expense.id === editingExpense.id 
-          ? { ...formData, id: editingExpense.id, amount: parseFloat(formData.amount) }
-          : expense
-      ));
-    } else {
-      // Add new expense
-      const newExpense = {
-        id: Date.now(),
-        ...formData,
-        amount: parseFloat(formData.amount)
-      };
-      setExpenses([...expenses, newExpense]);
-    }
+    try {
+      setLoading(true);
+      setError(null);
 
-    // Reset form
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      category: '',
-      description: '',
-      amount: '',
-      type: 'One-time',
-      isRecurring: false
-    });
-    setShowForm(false);
-    setEditingExpense(null);
+      // Transform frontend data to backend format
+      const backendData = {
+        title: selectedExpense.description, // Backend expects 'title' field
+        description: selectedExpense.description,
+        amount: parseFloat(selectedExpense.amount),
+        category: selectedExpense.category.toLowerCase().replace(/\s+/g, '_'), // Convert to backend format
+        paidDate: selectedExpense.date,
+        isRecurring: selectedExpense.isRecurring || false,
+        recurringPeriod: selectedExpense.type ? selectedExpense.type.toLowerCase() : 'monthly',
+        paymentStatus: 'paid'
+      };
+
+      if (selectedExpense.id) {
+        // Update existing expense
+        const response = await apiService.put(`/expenses/${selectedExpense.id}`, backendData);
+        
+        if (response.success) {
+          // Transform backend response to frontend format
+          const frontendExpense = transformBackendToFrontend(response.data);
+          
+          setExpenses(expenses.map(expense => 
+            expense.id === selectedExpense.id ? frontendExpense : expense
+          ));
+          
+          alert('Expense updated successfully!');
+        }
+      } else {
+        // Add new expense
+        const response = await apiService.post('/expenses', backendData);
+        
+        if (response.success) {
+          // Transform backend response to frontend format
+          const frontendExpense = transformBackendToFrontend(response.data);
+          
+          setExpenses([...expenses, frontendExpense]);
+          
+          alert('Expense added successfully!');
+        }
+      }
+
+      setShowExpenseForm(false);
+      setSelectedExpense(null);
+      
+    } catch (error) {
+      console.error('Error saving expense:', error);
+      setError('Failed to save expense. Please try again.');
+      alert('Failed to save expense: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Transform backend expense data to frontend format
+  const transformBackendToFrontend = (expense) => ({
+    id: expense._id,
+    date: expense.paidDate ? expense.paidDate.split('T')[0] : new Date().toISOString().split('T')[0],
+    category: formatCategoryForDisplay(expense.category),
+    description: expense.description || expense.title,
+    amount: expense.amount,
+    type: expense.recurringPeriod ? formatTypeForDisplay(expense.recurringPeriod) : 'One-time',
+    isRecurring: expense.isRecurring,
+    createdBy: expense.createdBy?.firstName || 'System',
+    status: expense.paymentStatus || 'Approved'
+  });
+
+  // Format category for display
+  const formatCategoryForDisplay = (category) => {
+    const categoryMap = {
+      'rent': 'Rent',
+      'utilities': 'Utilities',
+      'salaries': 'Employee Salaries',
+      'inventory': 'Inventory',
+      'marketing': 'Marketing',
+      'maintenance': 'Shop Maintenance',
+      'transport': 'Transport Charges',
+      'insurance': 'Insurance',
+      'taxes': 'Taxes',
+      'office_supplies': 'Stationery & Others',
+      'equipment': 'Equipment',
+      'other': 'Other'
+    };
+    return categoryMap[category] || category;
+  };
+
+  // Format type for display
+  const formatTypeForDisplay = (type) => {
+    const typeMap = {
+      'daily': 'Daily',
+      'weekly': 'Weekly',
+      'monthly': 'Monthly',
+      'quarterly': 'Quarterly',
+      'yearly': 'Yearly'
+    };
+    return typeMap[type] || 'One-time';
   };
 
   const handleEdit = (expense) => {
-    setEditingExpense(expense);
-    setFormData({
-      date: expense.date,
-      category: expense.category,
-      description: expense.description,
-      amount: expense.amount.toString(),
-      type: expense.type,
-      isRecurring: expense.isRecurring
-    });
-    setShowForm(true);
+    setSelectedExpense(expense);
+    setShowExpenseForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
-      setExpenses(expenses.filter(expense => expense.id !== id));
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await apiService.delete(`/expenses/${id}`);
+        
+        if (response.success) {
+          setExpenses(expenses.filter(expense => expense.id !== id));
+          alert('Expense deleted successfully!');
+        }
+      } catch (error) {
+        console.error('Error deleting expense:', error);
+        setError('Failed to delete expense. Please try again.');
+        alert('Failed to delete expense: ' + (error.message || 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   const handleExport = () => {
     const csvContent = 'Date,Category,Description,Amount,Type,Recurring\n' +
       filteredExpenses.map(expense => 
-        `${expense.date},${expense.category},"${expense.description}",${expense.amount},${expense.type},${expense.isRecurring}`
+        `${expense.date},"${typeof expense.category === 'object' ? expense.category?.name : expense.category}","${expense.description}",${expense.amount},${expense.type},${expense.isRecurring}`
       ).join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -188,18 +310,65 @@ const ExpenseManagement = () => {
   };
 
   const resetFilters = () => {
-    setDateFilter('all');
-    setCategoryFilter('all');
-    setTypeFilter('all');
+    setCategoryFilter('All');
+    setDateRange('30days');
     setSearchTerm('');
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <span className="ml-4 text-gray-600">Loading expense data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Expense Management</h1>
+        
+        {/* Error message */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <span className="text-red-400">⚠️</span>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{error}</p>
+                  <button 
+                    onClick={() => loadExpenseData()}
+                    className="mt-2 text-red-800 underline hover:text-red-900"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="flex justify-between items-center">
-          <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => {
+              setSelectedExpense({
+                date: new Date().toISOString().split('T')[0],
+                category: '',
+                description: '',
+                amount: '',
+                type: 'One-time',
+                isRecurring: false
+              });
+              setShowExpenseForm(true);
+            }}
+          >
             + Add Expense
           </button>
           <button className="btn btn-secondary" onClick={handleExport}>
@@ -240,8 +409,8 @@ const ExpenseManagement = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           <div>
             <label className="form-label">Date Range:</label>
-            <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="form-input w-full">
-              <option value="all">All Time</option>
+            <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="form-input w-full">
+              <option value="All">All Time</option>
               <option value="7days">Last 7 Days</option>
               <option value="30days">Last 30 Days</option>
               <option value="90days">Last 90 Days</option>
@@ -251,31 +420,37 @@ const ExpenseManagement = () => {
           <div>
             <label className="form-label">Category:</label>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="form-input w-full">
-              <option value="all">All Categories</option>
-              {expenseCategories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
+              <option value="All">All Categories</option>
+              <option value="Rent">Rent</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Employee Salaries">Employee Salaries</option>
+              <option value="Inventory">Inventory</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Shop Maintenance">Shop Maintenance</option>
+              <option value="Transport Charges">Transport Charges</option>
+              <option value="Insurance">Insurance</option>
+              <option value="Taxes">Taxes</option>
+              <option value="Stationery & Others">Stationery & Others</option>
+              <option value="Equipment">Equipment</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
           <div>
-            <label className="form-label">Type:</label>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="form-input w-full">
-              <option value="all">All Types</option>
-              <option value="recurring">Recurring</option>
-              <option value="one-time">One-time</option>
+            <label className="form-label">Sort By:</label>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="form-input w-full">
+              <option value="date">Date</option>
+              <option value="category">Category</option>
+              <option value="amount">Amount</option>
             </select>
           </div>
 
           <div>
-            <label className="form-label">Search:</label>
-            <input
-              type="text"
-              placeholder="Search expenses..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="form-input w-full"
-            />
+            <label className="form-label">Sort Order:</label>
+            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="form-input w-full">
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
           </div>
 
           <div className="flex items-end">
@@ -336,7 +511,7 @@ const ExpenseManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{expense.date}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {expense.category}
+                      {typeof expense.category === 'object' ? expense.category?.name : expense.category}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">{expense.description}</td>
@@ -381,24 +556,16 @@ const ExpenseManagement = () => {
       </div>
 
       {/* Add/Edit Form Modal */}
-      {showForm && (
+      {showExpenseForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900">{editingExpense ? 'Edit Expense' : 'Add New Expense'}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{selectedExpense ? 'Edit Expense' : 'Add New Expense'}</h3>
               <button 
                 className="text-gray-400 hover:text-gray-600"
                 onClick={() => {
-                  setShowForm(false);
-                  setEditingExpense(null);
-                  setFormData({
-                    date: new Date().toISOString().split('T')[0],
-                    category: '',
-                    description: '',
-                    amount: '',
-                    type: 'One-time',
-                    isRecurring: false
-                  });
+                  setShowExpenseForm(false);
+                  setSelectedExpense(null);
                 }}
               >
                 <span className="text-2xl">×</span>
@@ -410,8 +577,8 @@ const ExpenseManagement = () => {
                 <label className="form-label">Date:</label>
                 <input
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  value={selectedExpense?.date || ''}
+                  onChange={(e) => setSelectedExpense({...selectedExpense, date: e.target.value})}
                   className="form-input w-full"
                   required
                 />
@@ -420,15 +587,24 @@ const ExpenseManagement = () => {
               <div>
                 <label className="form-label">Category:</label>
                 <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
+                  value={selectedExpense?.category || ''}
+                  onChange={(e) => setSelectedExpense({...selectedExpense, category: e.target.value})}
                   className="form-input w-full"
                   required
                 >
                   <option value="">Select Category</option>
-                  {expenseCategories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
+                  <option value="Rent">Rent</option>
+                  <option value="Utilities">Utilities</option>
+                  <option value="Employee Salaries">Employee Salaries</option>
+                  <option value="Inventory">Inventory</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Shop Maintenance">Shop Maintenance</option>
+                  <option value="Transport Charges">Transport Charges</option>
+                  <option value="Insurance">Insurance</option>
+                  <option value="Taxes">Taxes</option>
+                  <option value="Stationery & Others">Stationery & Others</option>
+                  <option value="Equipment">Equipment</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
 
@@ -436,8 +612,8 @@ const ExpenseManagement = () => {
                 <label className="form-label">Description:</label>
                 <input
                   type="text"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  value={selectedExpense?.description || ''}
+                  onChange={(e) => setSelectedExpense({...selectedExpense, description: e.target.value})}
                   className="form-input w-full"
                   placeholder="Enter expense description"
                   required
@@ -448,8 +624,8 @@ const ExpenseManagement = () => {
                 <label className="form-label">Amount (Rs.):</label>
                 <input
                   type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({...formData, amount: e.target.value})}
+                  value={selectedExpense?.amount || ''}
+                  onChange={(e) => setSelectedExpense({...selectedExpense, amount: e.target.value})}
                   className="form-input w-full"
                   placeholder="0.00"
                   step="0.01"
@@ -461,8 +637,8 @@ const ExpenseManagement = () => {
               <div>
                 <label className="form-label">Type:</label>
                 <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value})}
+                  value={selectedExpense?.type || ''}
+                  onChange={(e) => setSelectedExpense({...selectedExpense, type: e.target.value})}
                   className="form-input w-full"
                   required
                 >
@@ -479,8 +655,8 @@ const ExpenseManagement = () => {
                 <input
                   type="checkbox"
                   name="isRecurring"
-                  checked={formData.isRecurring}
-                  onChange={(e) => setFormData({...formData, isRecurring: e.target.checked})}
+                  checked={selectedExpense?.isRecurring || false}
+                  onChange={(e) => setSelectedExpense({...selectedExpense, isRecurring: e.target.checked})}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label className="ml-2 text-sm text-gray-700">
@@ -490,22 +666,14 @@ const ExpenseManagement = () => {
 
               <div className="form-actions">
                 <button type="submit" className="submit-btn">
-                  {editingExpense ? 'Update Expense' : 'Add Expense'}
+                  {selectedExpense ? 'Update Expense' : 'Add Expense'}
                 </button>
                 <button 
                   type="button" 
                   className="cancel-btn"
                   onClick={() => {
-                    setShowForm(false);
-                    setEditingExpense(null);
-                    setFormData({
-                      date: new Date().toISOString().split('T')[0],
-                      category: '',
-                      description: '',
-                      amount: '',
-                      type: 'One-time',
-                      isRecurring: false
-                    });
+                    setShowExpenseForm(false);
+                    setSelectedExpense(null);
                   }}
                 >
                   Cancel

@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 const BatchTracker = ({ product, batches, onUpdateBatches, onClose }) => {
   const [newBatch, setNewBatch] = useState({
     batchNumber: '',
-    quantity: 0,
+    quantity: '',
     expiryDate: '',
     manufacturingDate: '',
     supplier: '',
-    costPrice: 0,
+    costPrice: '',
     location: '',
     notes: ''
   });
@@ -30,11 +30,11 @@ const BatchTracker = ({ product, batches, onUpdateBatches, onClose }) => {
     
     setNewBatch({
       batchNumber: '',
-      quantity: 0,
+      quantity: '',
       expiryDate: '',
       manufacturingDate: '',
       supplier: '',
-      costPrice: 0,
+      costPrice: '',
       location: '',
       notes: ''
     });
@@ -276,7 +276,9 @@ const BatchTracker = ({ product, batches, onUpdateBatches, onClose }) => {
                       {batch.supplier && (
                         <div className="flex justify-between">
                           <span>Supplier:</span>
-                          <span>{batch.supplier}</span>
+                          <span>
+                            {typeof batch.supplier === 'object' ? batch.supplier?.name : batch.supplier}
+                          </span>
                         </div>
                       )}
                       {batch.location && (

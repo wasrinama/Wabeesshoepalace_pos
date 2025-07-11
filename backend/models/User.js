@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Password is required'],
     minlength: [6, 'Password must be at least 6 characters'],
-    select: false
+    select: false // Do not return password by default
   },
   firstName: {
     type: String,
@@ -88,48 +88,42 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Encrypt password before saving
-userSchema.pre('save', async function(next) {
-  if (this.skipPasswordHashing) {  // check this flag
-    return next();
-  }
+// 🔐 Encrypt password before saving
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
 
-  if (!this.isModified('password')) {
-    return next();
-  }
-
-  const salt = await bcrypt.genSalt(parseInt(process.env.BCRYPT_ROUNDS) || 12);
+  const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+  const salt = await bcrypt.genSalt(saltRounds);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-
-// Sign JWT and return
-userSchema.methods.getSignedJwtToken = function() {
-  return jwt.sign(
-    { id: this._id, role: this.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '1d' } // Hardcoded to 1 day
-  );
-};
-
-// Match user entered password to hashed password in database
-userSchema.methods.matchPassword = async function(enteredPassword) {
+// 🔓 Match entered password with hashed one in DB
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Get full name
-userSchema.virtual('fullName').get(function() {
+// 🔑 Sign JWT and return
+userSchema.methods.getSignedJwtToken = function () {
+  return jwt.sign(
+    { id: this._id, role: this.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1d' }
+  );
+};
+
+// 👤 Virtual field: full name
+userSchema.virtual('fullName').get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
-// Ensure virtual fields are serialized
+// 🧼 Remove sensitive fields when sending JSON
 userSchema.set('toJSON', {
   virtuals: true,
-  transform: function(doc, ret) {
+  transform: function (doc, ret) {
     delete ret.password;
     return ret;
   }
 });
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }) => {
+const ProductForm = ({ product, suppliers, categories, onSave, onCancel, onUpdateSuppliers, onUpdateCategories }) => {
   const [formData, setFormData] = useState({
     name: '',
     brand: '',
+    sku: '',
     price: '',
     costPrice: '',
     barcode: '',
-    category: 'Running',
+    category: '',
     stock: 0,
-    minStock: '',
+    minStock: '5',
     sizeQuantities: [], // Array of objects: {size: '8', quantity: 10}
     colors: [],
     images: [],
@@ -23,12 +24,36 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
   const [newCategory, setNewCategory] = useState('');
   const [newSupplier, setNewSupplier] = useState('');
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Dynamic options
-  const [categories, setCategories] = useState(['Running', 'Casual', 'Basketball', 'Skate', 'Formal', 'Boots', 'Sandals']);
-  const [currentSuppliers, setCurrentSuppliers] = useState(suppliers || []);
+  // Dynamic options with safety checks
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [currentSuppliers, setCurrentSuppliers] = useState([]);
   const commonSizes = ['5', '6', '7', '8', '9', '10', '11', '12'];
   const commonColors = ['Black', 'White', 'Brown', 'Red', 'Blue', 'Navy', 'Gray'];
+
+  // Safety function to ensure data is properly structured
+  const safeCategories = (cats) => {
+    if (!Array.isArray(cats)) return [];
+    return cats.filter(cat => 
+      cat && 
+      typeof cat === 'object' && 
+      (cat._id || cat.id) && 
+      cat.name && 
+      typeof cat.name === 'string'
+    );
+  };
+
+  const safeSuppliers = (sups) => {
+    if (!Array.isArray(sups)) return [];
+    return sups.filter(sup => 
+      sup && 
+      typeof sup === 'object' && 
+      (sup.id || sup._id) && 
+      sup.name && 
+      typeof sup.name === 'string'
+    );
+  };
 
   useEffect(() => {
     if (product) {
@@ -37,10 +62,23 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
         product.sizes.map(size => ({ size, quantity: Math.floor(product.stock / product.sizes.length) || 1 })) : 
         [];
       
+      // Clean product data to ensure form fields are strings, not objects
       setFormData({ 
         ...product, 
+        category: typeof product.category === 'object' ? product.category?._id || product.category?.id : product.category,
+        supplier: typeof product.supplier === 'object' ? product.supplier?.name : product.supplier,
+        brand: typeof product.brand === 'object' ? product.brand?.name : product.brand,
+        name: String(product.name || ''),
+        price: product.price || product.sellingPrice || '',
+        costPrice: product.costPrice || '',
+        minStock: product.minStock || product.reorderLevel || '',
+        sku: String(product.sku || ''),
+        barcode: String(product.barcode || ''),
+        description: String(product.description || ''),
         sizeQuantities,
-        stock: product.stock || 0
+        stock: product.stock || 0,
+        colors: Array.isArray(product.colors) ? product.colors : [],
+        images: Array.isArray(product.images) ? product.images : []
       });
     } else {
       // Auto-generate barcode for new products
@@ -52,8 +90,14 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
   }, [product]);
 
   useEffect(() => {
-    setCurrentSuppliers(suppliers || []);
+    const safeSuppliersData = safeSuppliers(suppliers);
+    setCurrentSuppliers(safeSuppliersData);
   }, [suppliers]);
+
+  useEffect(() => {
+    const safeCategoriesData = safeCategories(categories);
+    setCategoryOptions(safeCategoriesData);
+  }, [categories]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -144,14 +188,25 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
   };
 
   const handleAddCategory = () => {
-    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-      const updatedCategories = [...categories, newCategory.trim()];
-      setCategories(updatedCategories);
+    if (newCategory.trim() && !categoryOptions.some(cat => cat.name === newCategory.trim())) {
+      const newCategoryObj = {
+        _id: Date.now().toString(),
+        name: newCategory.trim(),
+        description: '',
+        isActive: true
+      };
+      const updatedCategories = [...categoryOptions, newCategoryObj];
+      setCategoryOptions(updatedCategories);
       setFormData(prev => ({
         ...prev,
-        category: newCategory.trim()
+        category: newCategoryObj._id
       }));
       setNewCategory('');
+      
+      // Notify parent component about new category
+      if (onUpdateCategories) {
+        onUpdateCategories(updatedCategories);
+      }
     }
   };
 
@@ -192,32 +247,117 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = 'Required';
-    if (!formData.brand.trim()) newErrors.brand = 'Required';
-    if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = 'Required';
-    if (!formData.costPrice || parseFloat(formData.costPrice) <= 0) newErrors.costPrice = 'Required';
-    if (formData.sizeQuantities.length === 0) newErrors.sizeQuantities = 'At least one size is required';
-    if (formData.colors.length === 0) newErrors.colors = 'At least one color is required';
-    if (!formData.minStock || parseInt(formData.minStock) < 0) newErrors.minStock = 'Required';
+    // Basic required fields
+    if (!formData.name || !formData.name.trim()) {
+      newErrors.name = 'Product name is required';
+    }
+    
+    if (!formData.brand || !formData.brand.trim()) {
+      newErrors.brand = 'Brand is required';
+    }
+    
+    // Make category optional for now - can be added later
+    // if (!formData.category) {
+    //   newErrors.category = 'Category is required';
+    // }
+    
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      newErrors.price = 'Valid price is required';
+    }
+    
+    if (!formData.costPrice || parseFloat(formData.costPrice) <= 0) {
+      newErrors.costPrice = 'Valid cost price is required';
+    }
+    
+    // Make minStock optional with default value
+    if (formData.minStock && parseInt(formData.minStock) < 0) {
+      newErrors.minStock = 'Minimum stock cannot be negative';
+    }
+
+    // Show helpful messages for optional fields
+    if (formData.sizeQuantities.length === 0) {
+      console.warn('No sizes specified - will default to "One Size"');
+    }
+    
+    if (formData.colors.length === 0) {
+      console.warn('No colors specified - will default to "Default"');
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Provide defaults for optional fields
+      const defaultSizeQuantities = formData.sizeQuantities.length === 0 ? 
+        [{ size: 'One Size', quantity: parseInt(formData.minStock) || 1 }] : 
+        formData.sizeQuantities;
+      
+      const defaultColors = formData.colors.length === 0 ? ['Default'] : formData.colors;
+      
+      // Calculate total stock from size quantities
+      const totalStock = defaultSizeQuantities.reduce((total, sq) => total + (sq.quantity || 0), 0);
+      
+      // Generate unique SKU if not provided
+      const uniqueId = Date.now().toString().slice(-6);
+      const generatedSku = formData.sku || `${formData.brand.substring(0, 3).toUpperCase()}-${uniqueId}`;
+      
+      // Clean data - remove empty strings and undefined values
       const processedData = {
-        ...formData,
+        name: formData.name.trim(),
+        brand: formData.brand.trim(),
+        sku: generatedSku,
         price: parseFloat(formData.price),
         costPrice: parseFloat(formData.costPrice),
-        stock: formData.stock, // Already calculated from size quantities
-        minStock: parseInt(formData.minStock),
-        barcode: formData.barcode || generateBarcode(), // Ensure barcode is always present
-        sizes: formData.sizeQuantities.map(sq => sq.size) // Convert back to simple array for display
+        sellingPrice: parseFloat(formData.price),
+        stock: totalStock || 0,
+        reorderLevel: parseInt(formData.minStock) || 5,
+        unit: 'piece'
       };
-      onSave(processedData);
-    }
+      
+      // Only add optional fields if they have values
+      if (formData.category) processedData.category = formData.category;
+      if (formData.description) processedData.description = formData.description;
+      if (formData.barcode) processedData.barcode = formData.barcode;
+      if (defaultSizeQuantities.length > 0) processedData.size = defaultSizeQuantities.map(sq => sq.size).join(', ');
+      if (defaultColors.length > 0) processedData.color = defaultColors.join(', ');
+      if (formData.images && formData.images.length > 0) processedData.images = formData.images;
+      if (formData.description) processedData.notes = formData.description;
+      
+      console.log('=== ProductForm: Submitting product data ===');
+      console.log('Processed data:', JSON.stringify(processedData, null, 2));
+      await onSave(processedData);
+              console.log('=== ProductForm: onSave completed successfully ===');
+      } catch (error) {
+        console.error('=== ProductForm: Error submitting form ===');
+        console.error('Error object:', error);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        // Handle specific error types
+        if (error.message && error.message.includes('sku already exists')) {
+          setErrors({ sku: 'SKU already exists. Please use a different SKU.' });
+        } else if (error.message && error.message.includes('barcode already exists')) {
+          setErrors({ barcode: 'Barcode already exists. Please use a different barcode.' });
+        } else if (error.message && error.message.includes('category')) {
+          setErrors({ category: 'Invalid category. Please select a valid category.' });
+        } else if (error.message && error.message.includes('400')) {
+          setErrors({ submit: 'Invalid data submitted. Please check all fields and try again.' });
+        } else {
+          setErrors({ submit: error.message || 'Failed to save product. Please try again.' });
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
   };
 
   return (
@@ -233,6 +373,30 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Summary */}
+          {Object.keys(errors).length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <h4 className="text-red-800 font-semibold mb-2">Please fix the following errors:</h4>
+              <ul className="text-red-700 text-sm space-y-1">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field}>
+                    <strong>{field.charAt(0).toUpperCase() + field.slice(1)}:</strong> {error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Form Status */}
+          {isSubmitting && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+                <span className="text-blue-800">Saving product...</span>
+              </div>
+            </div>
+          )}
+
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -246,7 +410,7 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 placeholder="Enter product name"
                 required
               />
-              {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
+              {errors.name && <span className="text-red-500 text-sm mt-1">{typeof errors.name === 'object' ? errors.name?.message || 'Invalid name' : errors.name}</span>}
             </div>
 
             <div>
@@ -260,7 +424,34 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 placeholder="Enter brand name"
                 required
               />
-              {errors.brand && <span className="text-red-500 text-sm mt-1">{errors.brand}</span>}
+              {errors.brand && <span className="text-red-500 text-sm mt-1">{typeof errors.brand === 'object' ? errors.brand?.message || 'Invalid brand' : errors.brand}</span>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">SKU *</label>
+              <input
+                type="text"
+                name="sku"
+                value={formData.sku}
+                onChange={handleChange}
+                className="form-input w-full"
+                placeholder="Auto-generated if empty"
+              />
+              {errors.sku && <span className="text-red-500 text-sm mt-1">{typeof errors.sku === 'object' ? errors.sku?.message || 'Invalid SKU' : errors.sku}</span>}
+            </div>
+
+            <div>
+              <label className="form-label">Description</label>
+              <input
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                className="form-input w-full"
+                placeholder="Product description"
+              />
             </div>
           </div>
 
@@ -274,18 +465,50 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                   onChange={handleChange}
                   className="form-input flex-1"
                 >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  <option value="">Select category (optional)</option>
+                  {categoryOptions.map(cat => (
+                    <option key={cat._id || cat.id} value={cat._id || cat.id}>
+                      {String(cat.name)}
+                    </option>
                   ))}
                 </select>
                 <button
                   type="button"
-                  onClick={() => setNewCategory(prompt('Enter new category:') || '')}
+                  onClick={() => {
+                    const categoryName = prompt('Enter new category:');
+                    if (categoryName && categoryName.trim()) {
+                      setNewCategory(categoryName.trim());
+                      // Directly call handleAddCategory after setting the category
+                      setTimeout(() => {
+                        if (categoryName.trim() && !categoryOptions.some(cat => cat.name === categoryName.trim())) {
+                          const newCategoryObj = {
+                            _id: Date.now().toString(),
+                            name: categoryName.trim(),
+                            description: '',
+                            isActive: true
+                          };
+                          const updatedCategories = [...categoryOptions, newCategoryObj];
+                          setCategoryOptions(updatedCategories);
+                          setFormData(prev => ({
+                            ...prev,
+                            category: newCategoryObj._id
+                          }));
+                          setNewCategory('');
+                          
+                          // Notify parent component about new category
+                          if (onUpdateCategories) {
+                            onUpdateCategories(updatedCategories);
+                          }
+                        }
+                      }, 0);
+                    }
+                  }}
                   className="btn btn-outline text-sm px-3"
                 >
                   +
                 </button>
               </div>
+              {errors.category && <span className="text-red-500 text-sm mt-1">{typeof errors.category === 'object' ? errors.category?.message || 'Invalid category' : errors.category}</span>}
             </div>
 
             <div>
@@ -311,14 +534,46 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 >
                   <option value="">Select supplier</option>
                   {currentSuppliers.map(supplier => (
-                    <option key={supplier.id} value={supplier.name}>
-                      {supplier.name}
+                    <option key={supplier.id || supplier._id} value={supplier.name}>
+                      {String(supplier.name)}
                     </option>
                   ))}
                 </select>
                 <button
                   type="button"
-                  onClick={() => setNewSupplier(prompt('Enter new supplier name:') || '')}
+                  onClick={() => {
+                    const supplierName = prompt('Enter new supplier name:');
+                    if (supplierName && supplierName.trim()) {
+                      setNewSupplier(supplierName.trim());
+                      // Directly call handleAddSupplier after setting the supplier
+                      setTimeout(() => {
+                        if (supplierName.trim() && !currentSuppliers.some(s => s.name === supplierName.trim())) {
+                          const newSupplierObj = {
+                            id: Date.now().toString(),
+                            name: supplierName.trim(),
+                            contactPerson: '',
+                            email: '',
+                            phone: '',
+                            address: '',
+                            paymentTerms: 'Net 30',
+                            discountRate: 0
+                          };
+                          const updatedSuppliers = [...currentSuppliers, newSupplierObj];
+                          setCurrentSuppliers(updatedSuppliers);
+                          setFormData(prev => ({
+                            ...prev,
+                            supplier: supplierName.trim()
+                          }));
+                          setNewSupplier('');
+                          
+                          // Notify parent component about new supplier
+                          if (onUpdateSuppliers) {
+                            onUpdateSuppliers(updatedSuppliers);
+                          }
+                        }
+                      }, 0);
+                    }
+                  }}
                   className="btn btn-outline text-sm px-3"
                 >
                   +
@@ -341,7 +596,7 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 step="0.01"
                 required
               />
-              {errors.price && <span className="text-red-500 text-sm mt-1">{errors.price}</span>}
+              {errors.price && <span className="text-red-500 text-sm mt-1">{typeof errors.price === 'object' ? errors.price?.message || 'Invalid price' : errors.price}</span>}
             </div>
 
             <div>
@@ -356,7 +611,7 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 step="0.01"
                 required
               />
-              {errors.costPrice && <span className="text-red-500 text-sm mt-1">{errors.costPrice}</span>}
+              {errors.costPrice && <span className="text-red-500 text-sm mt-1">{typeof errors.costPrice === 'object' ? errors.costPrice?.message || 'Invalid cost price' : errors.costPrice}</span>}
             </div>
           </div>
 
@@ -375,23 +630,25 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
             </div>
 
             <div>
-              <label className="form-label">Minimum Stock Alert</label>
+              <label className="form-label">Minimum Stock (Optional)</label>
               <input
                 type="number"
                 name="minStock"
                 value={formData.minStock}
                 onChange={handleChange}
                 className="form-input w-full"
-                placeholder="10"
+                placeholder="5 (default)"
                 min="0"
               />
-              {errors.minStock && <span className="text-red-500 text-sm mt-1">{errors.minStock}</span>}
+              <p className="text-xs text-gray-500 mt-1">Alert when stock falls below this level</p>
+              {errors.minStock && <span className="text-red-500 text-sm mt-1">{typeof errors.minStock === 'object' ? errors.minStock?.message || 'Invalid minimum stock' : errors.minStock}</span>}
             </div>
           </div>
 
           {/* Size Management */}
           <div>
-            <label className="form-label">Available Sizes & Quantities *</label>
+            <label className="form-label">Available Sizes & Quantities (Optional)</label>
+            <p className="text-sm text-gray-600 mb-2">Add sizes and quantities, or leave empty for "One Size" default</p>
             
             {/* Add Size Section */}
             <div className="flex gap-2 mb-4">
@@ -444,12 +701,18 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 </div>
               ))}
             </div>
-            {errors.sizeQuantities && <span className="text-red-500 text-sm mt-1">{errors.sizeQuantities}</span>}
+            {formData.sizeQuantities.length === 0 && (
+              <div className="text-sm text-gray-500 mt-2">
+                No sizes added. Will default to "One Size" when saved.
+              </div>
+            )}
+            {errors.sizeQuantities && <span className="text-red-500 text-sm mt-1">{typeof errors.sizeQuantities === 'object' ? errors.sizeQuantities?.message || 'Invalid size quantities' : errors.sizeQuantities}</span>}
           </div>
 
           {/* Color Management */}
           <div>
-            <label className="form-label">Available Colors *</label>
+            <label className="form-label">Available Colors (Optional)</label>
+            <p className="text-sm text-gray-600 mb-2">Add colors, or leave empty for "Default" color</p>
             
             {/* Add Color Section */}
             <div className="flex gap-2 mb-4">
@@ -494,7 +757,12 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
                 </div>
               ))}
             </div>
-            {errors.colors && <span className="text-red-500 text-sm mt-1">{errors.colors}</span>}
+            {formData.colors.length === 0 && (
+              <div className="text-sm text-gray-500 mt-2">
+                No colors added. Will default to "Default" when saved.
+              </div>
+            )}
+            {errors.colors && <span className="text-red-500 text-sm mt-1">{typeof errors.colors === 'object' ? errors.colors?.message || 'Invalid colors' : errors.colors}</span>}
           </div>
 
           {/* Image Management */}
@@ -566,15 +834,36 @@ const ProductForm = ({ product, suppliers, onSave, onCancel, onUpdateSuppliers }
             />
           </div>
 
+          {/* Debug Information */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <h4 className="font-semibold text-blue-800 mb-2">Form Status:</h4>
+            <div className="text-sm text-blue-700">
+              <p><strong>Required Fields:</strong> Name: {formData.name ? '✓' : '✗'}, Brand: {formData.brand ? '✓' : '✗'}, Price: {formData.price ? '✓' : '✗'}, Cost Price: {formData.costPrice ? '✓' : '✗'}</p>
+              <p><strong>Category:</strong> {formData.category ? `✓ (${categoryOptions.find(c => c._id === formData.category)?.name || 'Unknown'})` : '✗ (Optional)'}</p>
+              <p><strong>Form Valid:</strong> {Object.keys(errors).length === 0 ? '✓ Ready to submit' : '✗ Has errors'}</p>
+              {Object.keys(errors).length > 0 && (
+                <div className="mt-2 text-red-600">
+                  <strong>Errors:</strong>
+                  <ul className="list-disc ml-4">
+                    {Object.entries(errors).map(([field, error]) => (
+                      <li key={field}>{field}: {error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <button type="submit" className="btn btn-primary flex-1">
-              {product ? 'Update Product' : 'Add Product'}
+            <button type="submit" className="btn btn-primary flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : (product ? 'Update Product' : 'Add Product')}
             </button>
-            <button type="button" onClick={onCancel} className="btn btn-outline flex-1">
-              Cancel
+            <button type="button" onClick={onCancel} className="btn btn-outline flex-1" disabled={isSubmitting}>
+              {isSubmitting ? 'Cancelling...' : 'Cancel'}
             </button>
           </div>
+          {errors.submit && <p className="text-red-500 text-sm mt-2">{errors.submit}</p>}
         </form>
       </div>
     </div>

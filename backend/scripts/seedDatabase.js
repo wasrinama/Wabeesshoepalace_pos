@@ -264,14 +264,17 @@ const seedDatabase = async () => {
     console.log('\n📊 Login Credentials:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('👑 Admin:');
+    console.log('   Username: code');
     console.log('   Email: admin@pos.com');
-    console.log('   Password: admin123');
+    console.log('   Password: code1234');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('👔 Manager:');
+    console.log('   Username: manager');
     console.log('   Email: manager@pos.com');
     console.log('   Password: manager123');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('💼 Cashier:');
+    console.log('   Username: cashier');
     console.log('   Email: cashier@pos.com');
     console.log('   Password: cashier123');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

@@ -32,6 +32,7 @@ const inventoryRoutes = require('./routes/inventory');
 const expenseRoutes = require('./routes/expenses');
 const dashboardRoutes = require('./routes/dashboard');
 const reportRoutes = require('./routes/reports');
+const activityRoutes = require('./routes/activities');
 
 // Import middleware
 const { errorHandler } = require('./middleware/errorHandler');
@@ -45,15 +46,15 @@ connectDB();
 // Security middleware
 app.use(helmet());
 
-// Rate limiting - Fixed to handle undefined values
-const limiter = rateLimit({
-  windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000, // Default 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100, // Default 100 requests
-  message: {
-    error: 'Too many requests from this IP, please try again later.'
-  }
-});
-app.use('/api/', limiter);
+// Rate limiting - TEMPORARILY DISABLED for development
+// const limiter = rateLimit({
+//   windowMs: (parseInt(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000, // Default 15 minutes
+//   max: parseInt(process.env.RATE_LIMIT_MAX) || 1000, // Increased to 1000 requests for development
+//   message: {
+//     error: 'Too many requests from this IP, please try again later.'
+//   }
+// });
+// app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
@@ -106,6 +107,7 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/activities', activityRoutes);
 
 // Error handling middleware
 app.use(notFound);

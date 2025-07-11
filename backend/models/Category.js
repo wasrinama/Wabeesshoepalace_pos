@@ -16,7 +16,8 @@ const categorySchema = new mongoose.Schema({
   slug: {
     type: String,
     unique: true,
-    lowercase: true
+    lowercase: true,
+    sparse: true
   },
   parent: {
     type: mongoose.Schema.Types.ObjectId,

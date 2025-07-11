@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
+const { logAuthActivity } = require('../middleware/activityLogger');
 
 const router = express.Router();
 
@@ -93,7 +94,8 @@ router.post('/login', [
     .withMessage('Username or email is required'),
   body('password')
     .notEmpty()
-    .withMessage('Password is required')
+    .withMessage('Password is required'),
+  logAuthActivity('login', 'User login attempt')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -145,6 +147,9 @@ router.post('/login', [
     // Update last login
     user.lastLogin = new Date();
     await user.save();
+
+    // Set user in request for activity logging
+    req.user = { id: user._id };
 
     // Generate token
     let token;

@@ -1,82 +1,320 @@
-import React, { useState } from 'react';
-
-// Sample data for dashboard analytics
-const sampleSalesData = [
-  { date: '2024-03-01', sales: 125000, profit: 37500, orders: 45, customers: 38 },
-  { date: '2024-03-02', sales: 89000, profit: 26700, orders: 32, customers: 28 },
-  { date: '2024-03-03', sales: 156000, profit: 46800, orders: 56, customers: 47 },
-  { date: '2024-03-04', sales: 78000, profit: 23400, orders: 28, customers: 22 },
-  { date: '2024-03-05', sales: 198000, profit: 59400, orders: 67, customers: 58 },
-  { date: '2024-03-06', sales: 145000, profit: 43500, orders: 52, customers: 44 },
-  { date: '2024-03-07', sales: 167000, profit: 50100, orders: 59, customers: 51 },
-  { date: '2024-03-08', sales: 134000, profit: 40200, orders: 48, customers: 41 },
-  { date: '2024-03-09', sales: 189000, profit: 56700, orders: 64, customers: 55 },
-  { date: '2024-03-10', sales: 212000, profit: 63600, orders: 73, customers: 62 }
-];
-
-const sampleTopProducts = [
-  { id: 1, name: 'Nike Air Max 270', sales: 45, revenue: 135000, profit: 40500, category: 'Running' },
-  { id: 2, name: 'Adidas Ultra Boost', sales: 38, revenue: 114000, profit: 34200, category: 'Running' },
-  { id: 3, name: 'Converse Chuck Taylor', sales: 52, revenue: 104000, profit: 31200, category: 'Casual' },
-  { id: 4, name: 'Puma RS-X', sales: 29, revenue: 87000, profit: 26100, category: 'Running' },
-  { id: 5, name: 'New Balance 574', sales: 34, revenue: 85000, profit: 25500, category: 'Casual' },
-  { id: 6, name: 'Vans Old Skool', sales: 41, revenue: 82000, profit: 24600, category: 'Casual' },
-  { id: 7, name: 'Reebok Classic', sales: 27, revenue: 67500, profit: 20250, category: 'Casual' },
-  { id: 8, name: 'Timberland Boots', sales: 19, revenue: 95000, profit: 28500, category: 'Boots' }
-];
-
-const sampleCustomerData = [
-  { tier: 'Platinum', count: 8, revenue: 156000, avgSpend: 19500 },
-  { tier: 'Gold', count: 23, revenue: 285000, avgSpend: 12391 },
-  { tier: 'Silver', count: 45, revenue: 315000, avgSpend: 7000 },
-  { tier: 'Bronze', count: 124, revenue: 186000, avgSpend: 1500 }
-];
-
-const sampleInventoryData = [
-  { id: 1, product: 'Nike Air Max 270', stock: 45, reorderLevel: 20, turnover: 2.3, status: 'healthy' },
-  { id: 2, product: 'Adidas Ultra Boost', stock: 12, reorderLevel: 15, turnover: 1.8, status: 'low' },
-  { id: 3, product: 'Converse Chuck Taylor', stock: 0, reorderLevel: 25, turnover: 3.1, status: 'out' },
-  { id: 4, product: 'Puma RS-X', stock: 67, reorderLevel: 30, turnover: 1.5, status: 'healthy' },
-  { id: 5, product: 'New Balance 574', stock: 28, reorderLevel: 20, turnover: 1.9, status: 'healthy' },
-  { id: 6, product: 'Vans Old Skool', stock: 8, reorderLevel: 15, turnover: 2.8, status: 'low' },
-  { id: 7, product: 'Reebok Classic', stock: 15, reorderLevel: 10, turnover: 1.2, status: 'healthy' },
-  { id: 8, product: 'Timberland Boots', stock: 3, reorderLevel: 5, turnover: 1.6, status: 'low' }
-];
-
-const sampleExpenseData = [
-  { id: 1, date: '2024-03-01', category: 'Rent', description: 'Monthly store rent', amount: 75000, type: 'Monthly', isRecurring: true },
-  { id: 2, date: '2024-03-02', category: 'Electricity Bills', description: 'CEB monthly charges', amount: 12500, type: 'Monthly', isRecurring: true },
-  { id: 3, date: '2024-03-03', category: 'Employee Salaries', description: 'Sales staff salary', amount: 45000, type: 'Monthly', isRecurring: true },
-  { id: 4, date: '2024-03-04', category: 'Shop Maintenance', description: 'AC repair and cleaning', amount: 8500, type: 'One-time', isRecurring: false },
-  { id: 5, date: '2024-03-05', category: 'Transport Charges', description: 'Supplier delivery charges', amount: 3200, type: 'Weekly', isRecurring: true },
-  { id: 6, date: '2024-03-06', category: 'Marketing', description: 'Facebook ads campaign', amount: 15000, type: 'Monthly', isRecurring: true },
-  { id: 7, date: '2024-03-07', category: 'Stationery & Others', description: 'Receipt rolls and pens', amount: 2800, type: 'One-time', isRecurring: false },
-  { id: 8, date: '2024-03-08', category: 'Employee Salaries', description: 'Manager salary', amount: 65000, type: 'Monthly', isRecurring: true },
-  { id: 9, date: '2024-03-09', category: 'Shop Maintenance', description: 'Daily cleaning service', amount: 5000, type: 'Monthly', isRecurring: true },
-  { id: 10, date: '2024-03-10', category: 'Transport Charges', description: 'Customer delivery', amount: 800, type: 'One-time', isRecurring: false }
-];
+import React, { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [dateRange, setDateRange] = useState('7days');
-  const [salesData] = useState(sampleSalesData);
-  const [topProducts] = useState(sampleTopProducts);
-  const [customerData] = useState(sampleCustomerData);
-  const [inventoryData] = useState(sampleInventoryData);
-  const [expenseData] = useState(sampleExpenseData);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Real data state
+  const [salesData, setSalesData] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
+  const [customerData, setCustomerData] = useState([]);
+  const [inventoryData, setInventoryData] = useState([]);
+  const [expenseData, setExpenseData] = useState([]);
   const [activeReport, setActiveReport] = useState(null);
   
   // Day-End Closing Report state
   const [dayEndData, setDayEndData] = useState({
     date: new Date().toISOString().split('T')[0],
-    cashierName: 'Kasun Perera',
+    cashierName: 'Loading...',
     shiftStart: '08:00',
     shiftEnd: '20:00',
-    openingCash: 50000,
+    openingCash: 0,
+    expectedCash: 0,
     actualCashCounted: 0,
+    totalSales: 0,
+    totalCashSales: 0,
+    totalCardSales: 0,
+    totalUpiSales: 0,
+    totalCreditSales: 0,
+    totalBankTransferSales: 0,
+    totalExpenses: 0,
+    totalOrders: 0,
+    totalDiscounts: 0,
+    totalTax: 0,
+    subtotal: 0,
+    netRevenue: 0,
     notes: '',
     signature: ''
   });
+
+  // Customer insights state
+  const [customerInsights, setCustomerInsights] = useState({
+    customerTiers: { Platinum: 0, Gold: 0, Silver: 0, Bronze: 0 },
+    averagePurchaseValue: 0,
+    repeatPurchaseRate: 0,
+    customerRetention: 0,
+    acquisitionChannels: [],
+    totalCustomers: 0,
+    activeCustomers: 0
+  });
+
+  // Product performance state
+  const [productPerformance, setProductPerformance] = useState({
+    products: [],
+    bestPerformers: {
+      topSeller: { name: 'Loading...', quantity: 0 },
+      highestRevenue: { name: 'Loading...', revenue: 0 },
+      bestProfitMargin: { name: 'Loading...', margin: 0 }
+    }
+  });
+
+  // Load day-end closing data
+  const loadDayEndData = async (targetDate = null) => {
+    try {
+      const dateParam = targetDate || dayEndData.date;
+      const response = await apiService.get('/dashboard/day-end-closing', {
+        params: { date: dateParam }
+      });
+      
+      if (response.success && response.data) {
+        setDayEndData(prevData => ({
+          ...prevData,
+          ...response.data,
+          actualCashCounted: prevData.actualCashCounted, // Keep user input
+          notes: prevData.notes, // Keep user input
+          signature: prevData.signature // Keep user input
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading day-end data:', error);
+    }
+  };
+
+  // Load customer insights data
+  const loadCustomerInsights = async () => {
+    try {
+      const response = await apiService.get('/dashboard/customer-insights');
+      
+      if (response.success && response.data) {
+        setCustomerInsights(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading customer insights:', error);
+    }
+  };
+
+  // Load product performance data
+  const loadProductPerformance = async () => {
+    try {
+      const response = await apiService.get('/dashboard/product-performance');
+      
+      if (response.success && response.data) {
+        setProductPerformance(response.data);
+        // Update topProducts with real performance data
+        const realProducts = response.data.products.map(product => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          sales: product.totalQuantity,
+          revenue: product.totalRevenue,
+          profit: product.totalProfit
+        }));
+        setTopProducts(realProducts);
+      }
+    } catch (error) {
+      console.error('Error loading product performance:', error);
+    }
+  };
+
+  // Load dashboard data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await loadDashboardData();
+        await loadDayEndData();
+        await loadCustomerInsights();
+        await loadProductPerformance();
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        setError('Failed to load dashboard data');
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [dateRange]);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Make parallel API calls
+      console.log('Making API calls...');
+      
+      const [
+        dashboardResponse,
+        productsResponse,
+        customersResponse,
+        inventoryResponse,
+        expensesResponse
+      ] = await Promise.all([
+        apiService.get('/dashboard/overview').catch(err => {
+          console.error('Dashboard overview API failed:', err);
+          return { data: null, error: err.message };
+        }),
+        apiService.get('/products').catch(err => {
+          console.error('Products API failed:', err);
+          return { data: [], error: err.message };
+        }),
+        apiService.get('/customers').catch(err => {
+          console.error('Customers API failed:', err);
+          return { data: [], error: err.message };
+        }),
+        apiService.get('/inventory').catch(err => {
+          console.error('Inventory API failed:', err);
+          return { data: [], error: err.message };
+        }),
+        apiService.get('/expenses').catch(err => {
+          console.error('Expenses API failed:', err);
+          return { data: [], error: err.message };
+        })
+      ]);
+
+      // Process dashboard data with safety checks
+      console.log('=== API RESPONSES ===');
+      console.log('Dashboard API response:', dashboardResponse);
+      console.log('Products API response:', productsResponse);
+      console.log('Customers API response:', customersResponse);
+      console.log('Inventory API response:', inventoryResponse);
+      console.log('Expenses API response:', expensesResponse);
+      console.log('=== END API RESPONSES ===');
+      
+      // Handle the actual API response structure
+      const dashboardData = dashboardResponse.data || dashboardResponse;
+      
+      // Get real sales trend data from API
+      const salesTrendResponse = await apiService.get('/dashboard/sales-trend', {
+        params: { period: dateRange }
+      });
+      
+      const realSalesData = salesTrendResponse.data || [];
+      
+      // Use real data if available, otherwise create basic data from overview
+      let salesData = [];
+      if (realSalesData.length > 0) {
+        salesData = realSalesData.map(item => ({
+          date: item.date,
+          sales: item.revenue || 0,
+          profit: item.profit || 0,
+          orders: item.orders || 0,
+          customers: Math.floor(Math.random() * 20) + 10 // Customers per day not tracked in sales
+        }));
+      } else {
+        // Fallback to basic data from overview
+        salesData = [{
+          date: new Date().toISOString().split('T')[0],
+          sales: dashboardData.today?.revenue || 0,
+          profit: dashboardData.today?.profit || 0,
+          orders: dashboardData.today?.orders || 0,
+          customers: dashboardData.customers?.total || 0
+        }];
+      }
+      
+      setSalesData(salesData);
+      
+      // Clean products data to prevent object rendering issues
+      const products = productsResponse.data || productsResponse.products || [];
+      const cleanProducts = products.map(product => ({
+        ...product,
+        id: product._id || product.id,
+        category: typeof product.category === 'object' ? product.category?.name : product.category,
+        supplier: typeof product.supplier === 'object' ? product.supplier?.name : product.supplier,
+        brand: typeof product.brand === 'object' ? product.brand?.name : product.brand,
+        name: String(product.name || ''),
+        sales: 0, // Will be populated by loadProductPerformance
+        revenue: 0, // Will be populated by loadProductPerformance
+        profit: 0 // Will be populated by loadProductPerformance
+      }));
+      // Note: topProducts will be updated with real performance data in loadProductPerformance
+      if (productPerformance.products.length === 0) {
+        setTopProducts(cleanProducts);
+      }
+      
+      // Create customer data from dashboard overview
+      const customerData = [];
+      if (dashboardData.customers) {
+        customerData.push(
+          { tier: 'Gold', count: Math.floor(dashboardData.customers.total * 0.2), revenue: Math.floor(dashboardData.month?.revenue * 0.4) || 0, avgSpend: 15000 },
+          { tier: 'Silver', count: Math.floor(dashboardData.customers.total * 0.3), revenue: Math.floor(dashboardData.month?.revenue * 0.35) || 0, avgSpend: 8000 },
+          { tier: 'Bronze', count: Math.floor(dashboardData.customers.total * 0.5), revenue: Math.floor(dashboardData.month?.revenue * 0.25) || 0, avgSpend: 5000 }
+        );
+      }
+      setCustomerData(customerData);
+      
+      // Handle inventory data
+      const inventoryProducts = products.slice(0, 10);
+      const inventoryData = inventoryProducts.map(product => ({
+        id: product._id || product.id,
+        product: product.name,
+        stock: product.stock || 0,
+        reorderLevel: product.reorderLevel || 10,
+        turnover: Math.random() * 3 + 1,
+        status: product.stock === 0 ? 'out' : (product.stock <= product.reorderLevel ? 'low' : 'healthy')
+      }));
+      setInventoryData(inventoryData);
+      
+      // Clean expense data to prevent object rendering issues
+      const expenses = expensesResponse.data || expensesResponse.expenses || [];
+      const cleanExpenses = expenses.map(expense => ({
+        ...expense,
+        id: expense._id || expense.id,
+        category: typeof expense.category === 'object' ? expense.category?.name : expense.category,
+        description: String(expense.description || expense.title || ''),
+        amount: Number(expense.amount || 0),
+        type: String(expense.type || 'One-time'),
+        date: String(expense.date || expense.paidDate || new Date().toISOString().split('T')[0])
+      }));
+      setExpenseData(cleanExpenses);
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        endpoint: error.endpoint || 'Unknown endpoint'
+      });
+      
+      setError(`Failed to load dashboard data: ${error.message}. Please try again.`);
+      
+      // Fallback to sample data if API fails
+      setSalesData([
+        { date: '2024-03-01', sales: 125000, profit: 37500, orders: 45, customers: 38 },
+        { date: '2024-03-02', sales: 89000, profit: 26700, orders: 32, customers: 28 },
+        { date: '2024-03-03', sales: 156000, profit: 46800, orders: 56, customers: 47 },
+        { date: '2024-03-04', sales: 78000, profit: 23400, orders: 28, customers: 22 },
+        { date: '2024-03-05', sales: 198000, profit: 59400, orders: 67, customers: 58 }
+      ]);
+      
+      setTopProducts([
+        { id: 1, name: 'Nike Air Max 270', sales: 45, revenue: 135000, profit: 40500, category: 'Running' },
+        { id: 2, name: 'Adidas Ultra Boost', sales: 38, revenue: 114000, profit: 34200, category: 'Running' },
+        { id: 3, name: 'Converse Chuck Taylor', sales: 52, revenue: 104000, profit: 31200, category: 'Casual' }
+      ]);
+      
+      setCustomerData([
+        { tier: 'Platinum', count: 8, revenue: 156000, avgSpend: 19500 },
+        { tier: 'Gold', count: 23, revenue: 285000, avgSpend: 12391 },
+        { tier: 'Silver', count: 45, revenue: 315000, avgSpend: 7000 }
+      ]);
+      
+      setInventoryData([
+        { id: 1, product: 'Nike Air Max 270', stock: 45, reorderLevel: 20, turnover: 2.3, status: 'healthy' },
+        { id: 2, product: 'Adidas Ultra Boost', stock: 12, reorderLevel: 15, turnover: 1.8, status: 'low' },
+        { id: 3, product: 'Converse Chuck Taylor', stock: 0, reorderLevel: 25, turnover: 3.1, status: 'out' }
+      ]);
+      
+      setExpenseData([
+        { id: 1, date: '2024-03-01', category: 'Rent', description: 'Monthly store rent', amount: 75000, type: 'Monthly', isRecurring: true },
+        { id: 2, date: '2024-03-02', category: 'Electricity Bills', description: 'CEB monthly charges', amount: 12500, type: 'Monthly', isRecurring: true },
+        { id: 3, date: '2024-03-03', category: 'Employee Salaries', description: 'Sales staff salary', amount: 45000, type: 'Monthly', isRecurring: true }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Calculate key metrics
   const calculateMetrics = () => {
@@ -109,6 +347,27 @@ const Dashboard = () => {
       .filter(expense => expense.isRecurring && expense.type === 'Monthly')
       .reduce((sum, expense) => sum + expense.amount, 0);
 
+    // Calculate sales by category (mock data for now)
+    const salesByCategory = {
+      'Sporting Goods': totalSales * 0.4,
+      'Apparel': totalSales * 0.35,
+      'Accessories': totalSales * 0.15,
+      'Equipment': totalSales * 0.1
+    };
+
+    // Calculate payment method breakdown (mock data for now)
+    const paymentMethodBreakdown = {
+      'Cash': totalSales * 0.45,
+      'Card': totalSales * 0.35,
+      'UPI': totalSales * 0.15,
+      'Credit': totalSales * 0.05
+    };
+
+    // Use real customer metrics from API
+    const repeatPurchaseRate = customerInsights.repeatPurchaseRate;
+    const customerRetention = customerInsights.customerRetention;
+    const acquisitionChannels = customerInsights.acquisitionChannels;
+
     return {
       totalSales,
       grossProfit,
@@ -122,7 +381,12 @@ const Dashboard = () => {
       expenseRatio,
       salesGrowth,
       expensesByCategory,
-      monthlyRecurringExpenses
+      monthlyRecurringExpenses,
+      salesByCategory,
+      paymentMethodBreakdown,
+      repeatPurchaseRate,
+      customerRetention,
+      acquisitionChannels
     };
   };
 
@@ -225,7 +489,7 @@ const Dashboard = () => {
       case 'products':
         csvContent = 'Product,Sales,Revenue,Profit,Category\n';
         topProducts.forEach(product => {
-          csvContent += `${product.name},${product.sales},${product.revenue},${product.profit},${product.category}\n`;
+          csvContent += `${product.name},${product.sales},${product.revenue},${product.profit},${typeof product.category === 'object' ? product.category?.name : product.category}\n`;
         });
         break;
       case 'inventory':
@@ -244,7 +508,7 @@ const Dashboard = () => {
         // Day-End Closing Report Export
         const todayExpenses = expenseData.filter(exp => exp.date === dayEndData.date);
         const totalExpenses = todayExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-        const expectedCash = dayEndData.openingCash + 50750;
+        const expectedCash = dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales);
         const cashDifference = dayEndData.actualCashCounted - expectedCash;
         
         csvContent = 'Day-End Closing Report\n';
@@ -254,26 +518,26 @@ const Dashboard = () => {
         csvContent += '\n';
         
         csvContent += 'Sales Summary\n';
-        csvContent += 'Total Sales,145000\n';
-        csvContent += 'Total Invoices,52\n';
-        csvContent += 'Total Discounts,7250\n';
-        csvContent += 'Tax Collected (VAT),18850\n';
-        csvContent += 'Net Revenue,156600\n';
+        csvContent += `Total Sales,${dayEndData.totalSales}\n`;
+        csvContent += `Total Invoices,${dayEndData.totalOrders}\n`;
+        csvContent += `Total Discounts,${dayEndData.totalDiscounts}\n`;
+        csvContent += `Tax Collected (VAT),${dayEndData.totalTax}\n`;
+        csvContent += `Net Revenue,${dayEndData.netRevenue}\n`;
         csvContent += '\n';
         
         csvContent += 'Payment Summary\n';
-        csvContent += 'Cash,50750\n';
-        csvContent += 'Card,65250\n';
-        csvContent += 'UPI / QR Pay,29000\n';
-        csvContent += 'Credit,0\n';
-        csvContent += 'Total Income,145000\n';
+        csvContent += `Cash,${dayEndData.totalCashSales}\n`;
+        csvContent += `Card,${dayEndData.totalCardSales}\n`;
+        csvContent += `UPI / QR Pay,${dayEndData.totalUpiSales}\n`;
+        csvContent += `Credit,${dayEndData.totalCreditSales}\n`;
+        csvContent += `Total Income,${dayEndData.totalSales}\n`;
         csvContent += '\n';
         
         csvContent += 'Expenses Summary\n';
         csvContent += `Number of Expenses,${todayExpenses.length}\n`;
         csvContent += `Total Expense Amount,${totalExpenses}\n`;
         todayExpenses.forEach(expense => {
-          csvContent += `${expense.category},${expense.description},${expense.amount}\n`;
+          csvContent += `${typeof expense.category === 'object' ? expense.category?.name : expense.category},${expense.description},${expense.amount}\n`;
         });
         csvContent += '\n';
         
@@ -285,7 +549,7 @@ const Dashboard = () => {
         csvContent += '\n';
         
         csvContent += 'Summary\n';
-        csvContent += `Net Profit,${145000 - totalExpenses}\n`;
+        csvContent += `Net Profit,${dayEndData.totalSales - totalExpenses}\n`;
         csvContent += `Notes,${dayEndData.notes}\n`;
         csvContent += `Signature,${dayEndData.signature}\n`;
         break;
@@ -301,6 +565,18 @@ const Dashboard = () => {
     a.click();
     window.URL.revokeObjectURL(url);
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <span className="ml-4 text-gray-600">Loading dashboard data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -322,6 +598,29 @@ const Dashboard = () => {
           </button>
         </div>
       </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <span className="text-red-400">⚠️</span>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+                <button 
+                  onClick={() => loadDashboardData()}
+                  className="mt-2 text-red-800 underline hover:text-red-900"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200">
         <button 
@@ -453,15 +752,15 @@ const Dashboard = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600">Sales</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(145000)}</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(dayEndData.totalSales)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-gray-100">
                     <span className="text-gray-600">Gross Profit</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(43500)}</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(metrics.grossProfit)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-gray-600">Net Profit</span>
-                    <span className="font-semibold text-green-600">{formatCurrency(25000)}</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(metrics.netProfit)}</span>
                   </div>
                 </div>
               </div>
@@ -531,75 +830,40 @@ const Dashboard = () => {
               <div className="card">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Sales by Category</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Running Shoes</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: '40%'}}></div>
+                  {Object.entries(metrics.salesByCategory).map(([category, amount]) => {
+                    const percentage = (amount / metrics.totalSales * 100).toFixed(1);
+                    return (
+                      <div key={category} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">{category}</span>
+                        <div className="flex items-center gap-3 flex-1 mx-4">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: `${percentage}%`}}></div>
+                          </div>
+                          <span className="text-sm font-medium text-gray-600">{percentage}%</span>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium text-gray-600">40%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Casual Shoes</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: '35%'}}></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-600">35%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Formal Shoes</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-yellow-600 h-2 rounded-full transition-all duration-300" style={{width: '15%'}}></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-600">15%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Boots</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-purple-600 h-2 rounded-full transition-all duration-300" style={{width: '10%'}}></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-600">10%</span>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
 
               <div className="card">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Credit Card</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: '45%'}}></div>
+                  {Object.entries(metrics.paymentMethodBreakdown).map(([method, amount]) => {
+                    const percentage = (amount / metrics.totalSales * 100).toFixed(1);
+                    return (
+                      <div key={method} className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">{method}</span>
+                        <div className="flex items-center gap-3 flex-1 mx-4">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: `${percentage}%`}}></div>
+                          </div>
+                          <span className="text-sm font-medium text-gray-600">{percentage}%</span>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium text-gray-600">45%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Cash</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: '35%'}}></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-600">35%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Mobile Pay</span>
-                    <div className="flex items-center gap-3 flex-1 mx-4">
-                      <div className="flex-1 bg-gray-200 rounded-full h-2">
-                        <div className="bg-purple-600 h-2 rounded-full transition-all duration-300" style={{width: '20%'}}></div>
-                      </div>
-                      <span className="text-sm font-medium text-gray-600">20%</span>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -644,7 +908,9 @@ const Dashboard = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.sales}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(product.revenue)}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600">{formatCurrency(product.profit)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{product.category}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {typeof product.category === 'object' ? product.category?.name : product.category}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -659,21 +925,21 @@ const Dashboard = () => {
                   <span className="text-2xl">🏆</span>
                   <div>
                     <p className="font-medium text-gray-900">Top Seller</p>
-                    <p className="text-sm text-gray-600">Nike Air Force 1 - 342 units sold</p>
+                    <p className="text-sm text-gray-600">{productPerformance.bestPerformers.topSeller.name} - {productPerformance.bestPerformers.topSeller.quantity} units sold</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
                   <span className="text-2xl">💰</span>
                   <div>
                     <p className="font-medium text-gray-900">Highest Revenue</p>
-                    <p className="text-sm text-gray-600">Adidas Ultra Boost - Rs. 485,000</p>
+                    <p className="text-sm text-gray-600">{productPerformance.bestPerformers.highestRevenue.name} - {formatCurrency(productPerformance.bestPerformers.highestRevenue.revenue)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
                   <span className="text-2xl">📈</span>
                   <div>
                     <p className="font-medium text-gray-900">Best Profit Margin</p>
-                    <p className="text-sm text-gray-600">Vans Old Skool - 45% margin</p>
+                    <p className="text-sm text-gray-600">{productPerformance.bestPerformers.bestProfitMargin.name} - {productPerformance.bestPerformers.bestProfitMargin.margin.toFixed(1)}% margin</p>
                   </div>
                 </div>
               </div>
@@ -693,23 +959,29 @@ const Dashboard = () => {
             <div className="space-y-6">
               <div className="card">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Tiers Distribution</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 rounded-lg">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-yellow-800">45</div>
+                      <div className="text-2xl font-bold text-yellow-800">{customerInsights.customerTiers.Platinum}</div>
                       <div className="text-sm text-yellow-600">Platinum Customers</div>
                     </div>
                   </div>
                   <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-800">128</div>
+                      <div className="text-2xl font-bold text-gray-800">{customerInsights.customerTiers.Gold}</div>
                       <div className="text-sm text-gray-600">Gold Customers</div>
                     </div>
                   </div>
                   <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-orange-800">256</div>
+                      <div className="text-2xl font-bold text-orange-800">{customerInsights.customerTiers.Silver}</div>
                       <div className="text-sm text-orange-600">Silver Customers</div>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-800">{customerInsights.customerTiers.Bronze}</div>
+                      <div className="text-sm text-blue-600">Bronze Customers</div>
                     </div>
                   </div>
                 </div>
@@ -721,15 +993,15 @@ const Dashboard = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center py-3 border-b border-gray-100">
                       <span className="text-gray-600">Average Purchase Value</span>
-                      <span className="font-semibold text-green-600">Rs. 12,450</span>
+                      <span className="font-semibold text-green-600">{formatCurrency(customerInsights.averagePurchaseValue)}</span>
                     </div>
                     <div className="flex justify-between items-center py-3 border-b border-gray-100">
                       <span className="text-gray-600">Repeat Purchase Rate</span>
-                      <span className="font-semibold text-blue-600">68%</span>
+                      <span className="font-semibold text-blue-600">{metrics.repeatPurchaseRate}%</span>
                     </div>
                     <div className="flex justify-between items-center py-3">
                       <span className="text-gray-600">Customer Retention</span>
-                      <span className="font-semibold text-purple-600">78%</span>
+                      <span className="font-semibold text-purple-600">{metrics.customerRetention}%</span>
                     </div>
                   </div>
                 </div>
@@ -737,33 +1009,20 @@ const Dashboard = () => {
                 <div className="card">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Acquisition Channels</h3>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Walk-in</span>
-                      <div className="flex items-center gap-3 flex-1 mx-4">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{width: '60%'}}></div>
+                    {metrics.acquisitionChannels.map((channel, index) => {
+                      const colors = ['bg-blue-600', 'bg-green-600', 'bg-purple-600'];
+                      return (
+                        <div key={channel.channel} className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">{channel.channel}</span>
+                          <div className="flex items-center gap-3 flex-1 mx-4">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div className={`${colors[index % colors.length]} h-2 rounded-full transition-all duration-300`} style={{width: `${channel.percentage}%`}}></div>
+                            </div>
+                            <span className="text-sm font-medium text-gray-600">{channel.percentage}%</span>
+                          </div>
                         </div>
-                        <span className="text-sm font-medium text-gray-600">60%</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Social Media</span>
-                      <div className="flex items-center gap-3 flex-1 mx-4">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-600 h-2 rounded-full transition-all duration-300" style={{width: '25%'}}></div>
-                        </div>
-                        <span className="text-sm font-medium text-gray-600">25%</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Referrals</span>
-                      <div className="flex items-center gap-3 flex-1 mx-4">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                          <div className="bg-purple-600 h-2 rounded-full transition-all duration-300" style={{width: '15%'}}></div>
-                        </div>
-                        <span className="text-sm font-medium text-gray-600">15%</span>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -939,15 +1198,15 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="card text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Sales</h3>
-                    <p className="text-3xl font-bold text-green-600">{formatCurrency(2450000)}</p>
+                    <p className="text-3xl font-bold text-green-600">{formatCurrency(metrics.totalSales)}</p>
                   </div>
                   <div className="card text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Units Sold</h3>
-                    <p className="text-3xl font-bold text-blue-600">1,235</p>
+                    <p className="text-3xl font-bold text-blue-600">{formatNumber(topProducts.reduce((sum, product) => sum + (product.sales || 0), 0))}</p>
                   </div>
                   <div className="card text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Average Sale</h3>
-                    <p className="text-3xl font-bold text-purple-600">{formatCurrency(9850)}</p>
+                    <p className="text-3xl font-bold text-purple-600">{formatCurrency(metrics.averageOrderValue || 0)}</p>
                   </div>
                 </div>
 
@@ -971,12 +1230,12 @@ const Dashboard = () => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {getTrendData('sales').map((row, index) => (
+                        {salesData.map((day, index) => (
                           <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(row.sales)}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.units}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(row.average)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.date}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(day.sales)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.orders}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(day.orders > 0 ? day.sales / day.orders : 0)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -991,15 +1250,15 @@ const Dashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="card text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Gross Profit</h3>
-                    <p className="text-3xl font-bold text-green-600">{formatCurrency(735000)}</p>
+                    <p className="text-3xl font-bold text-green-600">{formatCurrency(metrics.grossProfit)}</p>
                   </div>
                   <div className="card text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Net Profit</h3>
-                    <p className="text-3xl font-bold text-blue-600">{formatCurrency(420000)}</p>
+                    <p className="text-3xl font-bold text-blue-600">{formatCurrency(metrics.netProfit)}</p>
                   </div>
                   <div className="card text-center">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">Profit Margin</h3>
-                    <p className="text-3xl font-bold text-purple-600">30%</p>
+                    <p className="text-3xl font-bold text-purple-600">{metrics.netProfitMargin.toFixed(1)}%</p>
                   </div>
                 </div>
 
@@ -1038,8 +1297,11 @@ const Dashboard = () => {
                     <label>Date</label>
                     <input 
                       type="date" 
-                      value={dayEndData.date}
-                      onChange={(e) => setDayEndData({...dayEndData, date: e.target.value})}
+                                              value={dayEndData.date}
+                        onChange={(e) => {
+                          setDayEndData({...dayEndData, date: e.target.value});
+                          loadDayEndData(e.target.value);
+                        }}
                       className="form-input"
                     />
                   </div>
@@ -1080,23 +1342,23 @@ const Dashboard = () => {
                 <div className="dayend-summary-grid">
                   <div className="summary-item">
                     <span className="label">Total Sales</span>
-                    <span className="value">{formatCurrency(145000)}</span>
+                    <span className="value">{formatCurrency(dayEndData.totalSales)}</span>
                   </div>
                   <div className="summary-item">
                     <span className="label">Total Invoices</span>
-                    <span className="value">52</span>
+                    <span className="value">{dayEndData.totalOrders}</span>
                   </div>
                   <div className="summary-item">
                     <span className="label">Total Discounts</span>
-                    <span className="value">{formatCurrency(7250)}</span>
+                    <span className="value">{formatCurrency(dayEndData.totalDiscounts)}</span>
                   </div>
                   <div className="summary-item">
                     <span className="label">Tax Collected (VAT)</span>
-                    <span className="value">{formatCurrency(18850)}</span>
+                    <span className="value">{formatCurrency(dayEndData.totalTax)}</span>
                   </div>
                   <div className="summary-item">
                     <span className="label">Net Revenue</span>
-                    <span className="value">{formatCurrency(156600)}</span>
+                    <span className="value">{formatCurrency(dayEndData.netRevenue)}</span>
                   </div>
                 </div>
               </div>
@@ -1108,43 +1370,43 @@ const Dashboard = () => {
                   <div className="payment-method">
                     <div className="payment-header">
                       <span className="method-name">💵 Cash</span>
-                      <span className="method-amount">{formatCurrency(50750)}</span>
+                      <span className="method-amount">{formatCurrency(dayEndData.totalCashSales)}</span>
                     </div>
                     <div className="payment-details">
-                      <span>35% of total sales</span>
+                      <span>{dayEndData.totalSales > 0 ? ((dayEndData.totalCashSales / dayEndData.totalSales) * 100).toFixed(1) : 0}% of total sales</span>
                     </div>
                   </div>
                   <div className="payment-method">
                     <div className="payment-header">
                       <span className="method-name">💳 Card</span>
-                      <span className="method-amount">{formatCurrency(65250)}</span>
+                      <span className="method-amount">{formatCurrency(dayEndData.totalCardSales)}</span>
                     </div>
                     <div className="payment-details">
-                      <span>45% of total sales</span>
+                      <span>{dayEndData.totalSales > 0 ? ((dayEndData.totalCardSales / dayEndData.totalSales) * 100).toFixed(1) : 0}% of total sales</span>
                     </div>
                   </div>
                   <div className="payment-method">
                     <div className="payment-header">
                       <span className="method-name">📱 UPI / QR Pay</span>
-                      <span className="method-amount">{formatCurrency(29000)}</span>
+                      <span className="method-amount">{formatCurrency(dayEndData.totalUpiSales)}</span>
                     </div>
                     <div className="payment-details">
-                      <span>20% of total sales</span>
+                      <span>{dayEndData.totalSales > 0 ? ((dayEndData.totalUpiSales / dayEndData.totalSales) * 100).toFixed(1) : 0}% of total sales</span>
                     </div>
                   </div>
                   <div className="payment-method">
                     <div className="payment-header">
                       <span className="method-name">🏪 Credit</span>
-                      <span className="method-amount">{formatCurrency(0)}</span>
+                      <span className="method-amount">{formatCurrency(dayEndData.totalCreditSales)}</span>
                     </div>
                     <div className="payment-details">
-                      <span>0% of total sales</span>
+                      <span>{dayEndData.totalSales > 0 ? ((dayEndData.totalCreditSales / dayEndData.totalSales) * 100).toFixed(1) : 0}% of total sales</span>
                     </div>
                   </div>
                   <div className="payment-total">
                     <div className="payment-header">
                       <span className="method-name"><strong>Total Income</strong></span>
-                      <span className="method-amount"><strong>{formatCurrency(145000)}</strong></span>
+                      <span className="method-amount"><strong>{formatCurrency(dayEndData.totalSales)}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -1169,7 +1431,9 @@ const Dashboard = () => {
                     {expenseData.filter(exp => exp.date === dayEndData.date).length > 0 ? (
                       expenseData.filter(exp => exp.date === dayEndData.date).map(expense => (
                         <div key={expense.id} className="expense-item">
-                          <span className="expense-category">{expense.category}</span>
+                          <span className="expense-category">
+                            {typeof expense.category === 'object' ? expense.category?.name : expense.category}
+                          </span>
                           <span className="expense-description">{expense.description}</span>
                           <span className="expense-amount">{formatCurrency(expense.amount)}</span>
                         </div>
@@ -1200,7 +1464,7 @@ const Dashboard = () => {
                     <div className="cash-item">
                       <label>Expected Cash in Drawer</label>
                       <div className="calculated-value">
-                        <span>{formatCurrency(dayEndData.openingCash + 50750)}</span>
+                        <span>{formatCurrency(dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales))}</span>
                         <small>(Opening + Cash Sales)</small>
                       </div>
                     </div>
@@ -1219,11 +1483,11 @@ const Dashboard = () => {
                     </div>
                     <div className="cash-item">
                       <label>Difference</label>
-                      <div className={`calculated-value ${(dayEndData.actualCashCounted - (dayEndData.openingCash + 50750)) === 0 ? 'balanced' : (dayEndData.actualCashCounted - (dayEndData.openingCash + 50750)) > 0 ? 'over' : 'short'}`}>
-                        <span>{formatCurrency(dayEndData.actualCashCounted - (dayEndData.openingCash + 50750))}</span>
+                      <div className={`calculated-value ${(dayEndData.actualCashCounted - (dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales))) === 0 ? 'balanced' : (dayEndData.actualCashCounted - (dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales))) > 0 ? 'over' : 'short'}`}>
+                        <span>{formatCurrency(dayEndData.actualCashCounted - (dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales)))}</span>
                         <small>
-                          {(dayEndData.actualCashCounted - (dayEndData.openingCash + 50750)) === 0 ? '(Balanced)' : 
-                           (dayEndData.actualCashCounted - (dayEndData.openingCash + 50750)) > 0 ? '(Over)' : '(Short)'}
+                          {(dayEndData.actualCashCounted - (dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales))) === 0 ? '(Balanced)' : 
+                           (dayEndData.actualCashCounted - (dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales))) > 0 ? '(Over)' : '(Short)'}
                         </small>
                       </div>
                     </div>
@@ -1270,7 +1534,7 @@ const Dashboard = () => {
                     <div className="summary-stats">
                       <div className="stat-line">
                         <span>Total Sales:</span>
-                        <span>{formatCurrency(145000)}</span>
+                        <span>{formatCurrency(dayEndData.totalSales)}</span>
                       </div>
                       <div className="stat-line">
                         <span>Total Expenses:</span>
@@ -1278,7 +1542,7 @@ const Dashboard = () => {
                       </div>
                       <div className="stat-line profit">
                         <span>Net Profit:</span>
-                        <span>{formatCurrency(145000 - expenseData.filter(exp => exp.date === dayEndData.date).reduce((sum, exp) => sum + exp.amount, 0))}</span>
+                        <span>{formatCurrency(dayEndData.totalSales - expenseData.filter(exp => exp.date === dayEndData.date).reduce((sum, exp) => sum + exp.amount, 0))}</span>
                       </div>
                     </div>
                   </div>
@@ -1291,11 +1555,11 @@ const Dashboard = () => {
                       </div>
                       <div className="stat-line">
                         <span>Cash Sales:</span>
-                        <span>{formatCurrency(50750)}</span>
+                        <span>{formatCurrency(dayEndData.totalCashSales)}</span>
                       </div>
                       <div className="stat-line">
                         <span>Expected Cash:</span>
-                        <span>{formatCurrency(dayEndData.openingCash + 50750)}</span>
+                        <span>{formatCurrency(dayEndData.expectedCash || (dayEndData.openingCash + dayEndData.totalCashSales))}</span>
                       </div>
                       <div className="stat-line">
                         <span>Actual Cash:</span>
@@ -1308,11 +1572,11 @@ const Dashboard = () => {
                     <div className="summary-stats">
                       <div className="stat-line">
                         <span>Total Invoices:</span>
-                        <span>52</span>
+                        <span>{dayEndData.totalOrders}</span>
                       </div>
                       <div className="stat-line">
                         <span>Avg Invoice Value:</span>
-                        <span>{formatCurrency(145000 / 52)}</span>
+                        <span>{formatCurrency(dayEndData.totalOrders > 0 ? dayEndData.totalSales / dayEndData.totalOrders : 0)}</span>
                       </div>
                       <div className="stat-line">
                         <span>Discount Rate:</span>
@@ -1326,16 +1590,7 @@ const Dashboard = () => {
               {/* Action Buttons */}
               <div className="dayend-actions-bottom">
                 <button className="btn-secondary" onClick={() => {
-                  setDayEndData({
-                    date: new Date().toISOString().split('T')[0],
-                    cashierName: 'Kasun Perera',
-                    shiftStart: '08:00',
-                    shiftEnd: '20:00',
-                    openingCash: 50000,
-                    actualCashCounted: 0,
-                    notes: '',
-                    signature: ''
-                  });
+                  loadDayEndData();
                 }}>
                   Reset Form
                 </button>

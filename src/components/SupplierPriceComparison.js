@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiService from '../services/apiService';
 
 const SupplierPriceComparison = ({ product, suppliers, onSelectSupplier, onClose }) => {
   const [quantity, setQuantity] = useState(1);
   const [showAddSupplierPrice, setShowAddSupplierPrice] = useState(false);
+  const [supplierPrices, setSupplierPrices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [newSupplierPrice, setNewSupplierPrice] = useState({
     supplierId: '',
     price: 0,
@@ -11,60 +15,80 @@ const SupplierPriceComparison = ({ product, suppliers, onSelectSupplier, onClose
     notes: ''
   });
 
-  // Sample supplier pricing data (in real app, this would come from API)
-  const [supplierPrices, setSupplierPrices] = useState([
-    {
-      id: '1',
-      supplierId: '1',
-      supplierName: 'Nike Distribution Lanka',
-      price: 80.00,
-      minOrderQuantity: 10,
-      leadTime: '5-7 days',
-      rating: 4.8,
-      reliabilityScore: 95,
-      lastUpdated: '2024-03-01',
-      notes: 'Bulk discount available for 50+ units',
-      discountTiers: [
-        { minQty: 10, discount: 0 },
-        { minQty: 50, discount: 5 },
-        { minQty: 100, discount: 10 }
-      ]
-    },
-    {
-      id: '2',
-      supplierId: '2',
-      supplierName: 'Adidas Sri Lanka',
-      price: 85.00,
-      minOrderQuantity: 5,
-      leadTime: '3-5 days',
-      rating: 4.5,
-      reliabilityScore: 88,
-      lastUpdated: '2024-02-28',
-      notes: 'Fast delivery, premium quality',
-      discountTiers: [
-        { minQty: 5, discount: 0 },
-        { minQty: 25, discount: 3 },
-        { minQty: 75, discount: 8 }
-      ]
-    },
-    {
-      id: '3',
-      supplierId: '3',
-      supplierName: 'Local Sports Distributor',
-      price: 75.00,
-      minOrderQuantity: 20,
-      leadTime: '7-10 days',
-      rating: 4.2,
-      reliabilityScore: 82,
-      lastUpdated: '2024-03-05',
-      notes: 'Competitive pricing, longer lead time',
-      discountTiers: [
-        { minQty: 20, discount: 0 },
-        { minQty: 60, discount: 7 },
-        { minQty: 120, discount: 12 }
-      ]
+  // Fetch supplier prices from API
+  useEffect(() => {
+    if (product && product.id) {
+      fetchSupplierPrices();
     }
-  ]);
+  }, [product]);
+
+  const fetchSupplierPrices = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await apiService.get(`/products/${product.id}/supplier-prices`);
+      setSupplierPrices(response.data || []);
+    } catch (error) {
+      console.error('Error fetching supplier prices:', error);
+      setError('Failed to load supplier prices. Please try again.');
+      // Fallback to sample data if API fails
+      setSupplierPrices([
+        {
+          id: '1',
+          supplierId: '1',
+          supplierName: 'Nike Distribution Lanka',
+          price: 80.00,
+          minOrderQuantity: 10,
+          leadTime: '5-7 days',
+          rating: 4.8,
+          reliabilityScore: 95,
+          lastUpdated: '2024-03-01',
+          notes: 'Bulk discount available for 50+ units',
+          discountTiers: [
+            { minQty: 10, discount: 0 },
+            { minQty: 50, discount: 5 },
+            { minQty: 100, discount: 10 }
+          ]
+        },
+        {
+          id: '2',
+          supplierId: '2',
+          supplierName: 'Adidas Sri Lanka',
+          price: 85.00,
+          minOrderQuantity: 5,
+          leadTime: '3-5 days',
+          rating: 4.5,
+          reliabilityScore: 88,
+          lastUpdated: '2024-02-28',
+          notes: 'Fast delivery, premium quality',
+          discountTiers: [
+            { minQty: 5, discount: 0 },
+            { minQty: 25, discount: 3 },
+            { minQty: 75, discount: 8 }
+          ]
+        },
+        {
+          id: '3',
+          supplierId: '3',
+          supplierName: 'Local Sports Distributor',
+          price: 75.00,
+          minOrderQuantity: 20,
+          leadTime: '7-10 days',
+          rating: 4.2,
+          reliabilityScore: 82,
+          lastUpdated: '2024-03-05',
+          notes: 'Competitive pricing, longer lead time',
+          discountTiers: [
+            { minQty: 20, discount: 0 },
+            { minQty: 60, discount: 7 },
+            { minQty: 120, discount: 12 }
+          ]
+        }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calculateFinalPrice = (supplierPrice, qty) => {
     let price = supplierPrice.price;
@@ -87,14 +111,14 @@ const SupplierPriceComparison = ({ product, suppliers, onSelectSupplier, onClose
     return finalPrice * qty;
   };
 
-  const handleAddSupplierPrice = (e) => {
+  const handleAddSupplierPrice = async (e) => {
     e.preventDefault();
     const supplier = suppliers.find(s => s.id === newSupplierPrice.supplierId);
     if (!supplier) return;
 
     const newPrice = {
       ...newSupplierPrice,
-      id: Date.now().toString(),
+      productId: product.id,
       supplierName: supplier.name,
       price: parseFloat(newSupplierPrice.price),
       minOrderQuantity: parseInt(newSupplierPrice.minOrderQuantity),
@@ -106,15 +130,35 @@ const SupplierPriceComparison = ({ product, suppliers, onSelectSupplier, onClose
       ]
     };
 
-    setSupplierPrices([...supplierPrices, newPrice]);
-    setNewSupplierPrice({
-      supplierId: '',
-      price: 0,
-      minOrderQuantity: 1,
-      leadTime: '',
-      notes: ''
-    });
-    setShowAddSupplierPrice(false);
+    try {
+      const response = await apiService.post(`/products/${product.id}/supplier-prices`, newPrice);
+      const savedPrice = response.data;
+      setSupplierPrices([...supplierPrices, savedPrice]);
+      setNewSupplierPrice({
+        supplierId: '',
+        price: 0,
+        minOrderQuantity: 1,
+        leadTime: '',
+        notes: ''
+      });
+      setShowAddSupplierPrice(false);
+    } catch (error) {
+      console.error('Error adding supplier price:', error);
+      // Fallback to local addition
+      const priceWithId = {
+        ...newPrice,
+        id: Date.now().toString()
+      };
+      setSupplierPrices([...supplierPrices, priceWithId]);
+      setNewSupplierPrice({
+        supplierId: '',
+        price: 0,
+        minOrderQuantity: 1,
+        leadTime: '',
+        notes: ''
+      });
+      setShowAddSupplierPrice(false);
+    }
   };
 
   const handleSelectSupplier = (supplierPrice) => {
@@ -271,7 +315,15 @@ const SupplierPriceComparison = ({ product, suppliers, onSelectSupplier, onClose
         <div className="space-y-4">
           <h4 className="text-lg font-semibold text-gray-900">Price Comparison</h4>
           
-          {sortedSuppliers.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">
+              Loading supplier prices...
+            </div>
+          ) : error ? (
+            <div className="text-center py-8 text-red-500">
+              {error}
+            </div>
+          ) : sortedSuppliers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No suppliers available for this quantity. 
               {quantity < Math.min(...supplierPrices.map(sp => sp.minOrderQuantity)) && (

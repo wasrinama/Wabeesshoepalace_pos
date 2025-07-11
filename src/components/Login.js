@@ -27,8 +27,8 @@ const Login = ({ onLogin }) => {
       const result = await authService.login(loginData);
       
       if (result.success) {
-        // Call parent login handler
-        onLogin(result.user);
+        // Call parent login handler with user and token
+        onLogin(result.user, result.token);
       } else {
         setError(result.message || 'Login failed');
       }
@@ -41,9 +41,9 @@ const Login = ({ onLogin }) => {
   };
 
   const demoCredentials = [
-    { role: 'Admin', username: 'admin', password: 'admin123' },
-    { role: 'Manager', username: 'manager1', password: 'mgr123' },
-    { role: 'Cashier', username: 'cashier1', password: 'cash123' }
+    { role: 'Admin', username: 'code', password: 'code1234' },
+    { role: 'Manager', username: 'manager', password: 'manager123' },
+    { role: 'Cashier', username: 'cashier', password: 'cashier123' }
   ];
 
   return (
