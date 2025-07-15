@@ -63,7 +63,7 @@ router.get('/sales', [protect, authorize('admin', 'manager')], async (req, res) 
 
       salesByDate[key].revenue += sale.total;
       salesByDate[key].orders += 1;
-      salesByDate[key].profit += (sale.profit || 0);
+      salesByDate[key].profit += (sale.grossProfit || 0);
       salesByDate[key].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
     });
 
@@ -74,7 +74,8 @@ router.get('/sales', [protect, authorize('admin', 'manager')], async (req, res) 
 
     const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
     const totalOrders = sales.length;
-    const totalProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const totalGrossProfit = sales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
+    const totalNetProfit = sales.reduce((sum, sale) => sum + (sale.netProfit || 0), 0);
 
     res.json({
       success: true,
@@ -82,7 +83,8 @@ router.get('/sales', [protect, authorize('admin', 'manager')], async (req, res) 
         summary: {
           totalRevenue,
           totalOrders,
-          totalProfit,
+          totalGrossProfit,
+          totalNetProfit,
           averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0
         },
         details: reportData
@@ -242,7 +244,7 @@ router.get('/profit-loss', [protect, authorize('admin', 'manager')], async (req,
 
     const totalRevenue = sales.reduce((sum, sale) => sum + sale.total, 0);
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const grossProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const grossProfit = sales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
     const netProfit = grossProfit - totalExpenses;
 
     const expenseBreakdown = {};

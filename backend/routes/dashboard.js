@@ -42,7 +42,8 @@ router.get('/overview', bypassAuth, async (req, res) => {
 
     const todayRevenue = todaySales.reduce((sum, sale) => sum + sale.total, 0);
     const todayOrders = todaySales.length;
-    const todayProfit = todaySales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const todayGrossProfit = todaySales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
+    const todayNetProfit = todaySales.reduce((sum, sale) => sum + (sale.netProfit || 0), 0);
 
     // Last 7 days data
     const weekSales = await Sale.find({
@@ -52,7 +53,8 @@ router.get('/overview', bypassAuth, async (req, res) => {
 
     const weekRevenue = weekSales.reduce((sum, sale) => sum + sale.total, 0);
     const weekOrders = weekSales.length;
-    const weekProfit = weekSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const weekGrossProfit = weekSales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
+    const weekNetProfit = weekSales.reduce((sum, sale) => sum + (sale.netProfit || 0), 0);
 
     // Last 30 days data
     const monthSales = await Sale.find({
@@ -62,7 +64,8 @@ router.get('/overview', bypassAuth, async (req, res) => {
 
     const monthRevenue = monthSales.reduce((sum, sale) => sum + sale.total, 0);
     const monthOrders = monthSales.length;
-    const monthProfit = monthSales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+    const monthGrossProfit = monthSales.reduce((sum, sale) => sum + (sale.grossProfit || 0), 0);
+    const monthNetProfit = monthSales.reduce((sum, sale) => sum + (sale.netProfit || 0), 0);
 
     // Inventory alerts
     const lowStockProducts = await Product.find({
@@ -115,21 +118,21 @@ router.get('/overview', bypassAuth, async (req, res) => {
         today: {
           revenue: todayRevenue,
           orders: todayOrders,
-          profit: todayProfit,
+          profit: todayNetProfit,
           expenses: todayExpenseTotal,
-          netProfit: todayProfit - todayExpenseTotal
+          netProfit: todayNetProfit - todayExpenseTotal
         },
         week: {
           revenue: weekRevenue,
           orders: weekOrders,
-          profit: weekProfit
+          profit: weekNetProfit
         },
         month: {
           revenue: monthRevenue,
           orders: monthOrders,
-          profit: monthProfit,
+          profit: monthNetProfit,
           expenses: monthExpenseTotal,
-          netProfit: monthProfit - monthExpenseTotal
+          netProfit: monthNetProfit - monthExpenseTotal
         },
         alerts: {
           lowStock: lowStockProducts.length,
@@ -193,12 +196,16 @@ router.get('/sales-trend', bypassAuth, async (req, res) => {
         salesByDate[date] = {
           revenue: 0,
           orders: 0,
-          profit: 0
+          profit: 0,
+          grossProfit: 0,
+          netProfit: 0
         };
       }
       salesByDate[date].revenue += sale.total;
       salesByDate[date].orders += 1;
-      salesByDate[date].profit += (sale.profit || 0);
+      salesByDate[date].profit += (sale.netProfit || 0);
+      salesByDate[date].grossProfit += (sale.grossProfit || 0);
+      salesByDate[date].netProfit += (sale.netProfit || 0);
     });
 
     // Convert to array format
@@ -268,7 +275,8 @@ router.get('/top-products', bypassAuth, async (req, res) => {
         }
         productStats[productId].sales += item.quantity;
         productStats[productId].revenue += item.total;
-        productStats[productId].profit += (item.total - (item.product.costPrice * item.quantity));
+        // Use stored profit if available, otherwise calculate
+        productStats[productId].profit += item.profit || (item.total - (item.costPrice * item.quantity));
       });
     });
 
@@ -460,8 +468,6 @@ router.get('/product-performance', bypassAuth, async (req, res) => {
           const productId = item.product._id.toString();
           const productName = item.product.name;
           const categoryName = typeof item.product.category === 'object' ? item.product.category?.name : item.product.category;
-          const costPrice = item.product.costPrice || 0;
-          const unitProfit = item.unitPrice - costPrice;
           
           if (!productMetrics[productId]) {
             productMetrics[productId] = {
@@ -477,7 +483,8 @@ router.get('/product-performance', bypassAuth, async (req, res) => {
           
           productMetrics[productId].totalQuantity += item.quantity;
           productMetrics[productId].totalRevenue += item.total;
-          productMetrics[productId].totalProfit += unitProfit * item.quantity;
+          // Use stored profit if available, otherwise calculate from cost price
+          productMetrics[productId].totalProfit += item.profit || ((item.unitPrice - (item.costPrice || item.product.costPrice || 0)) * item.quantity);
           productMetrics[productId].salesCount += 1;
         }
       });

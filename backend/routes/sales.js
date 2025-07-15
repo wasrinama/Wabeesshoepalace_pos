@@ -131,8 +131,11 @@ router.post('/', [
   body('total').isNumeric().withMessage('Total must be a number')
 ], async (req, res) => {
   try {
+    console.log('🔥 Sales API - Received request body:', JSON.stringify(req.body, null, 2));
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Sales API - Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         errors: errors.array()
@@ -140,10 +143,13 @@ router.post('/', [
     }
 
     const { items, customer, paymentMethod, amountPaid, notes } = req.body;
+    console.log('✅ Sales API - Validation passed, processing sale...');
 
     // Calculate totals
     let subtotal = 0;
     let totalTax = 0;
+    let grossProfit = 0;
+    const processedItems = [];
 
     // Validate items and calculate totals
     for (let item of items) {
@@ -164,10 +170,23 @@ router.post('/', [
 
       const itemTotal = item.unitPrice * item.quantity;
       const itemTax = (itemTotal * (product.taxRate || 0)) / 100;
+      const itemProfit = (item.unitPrice - product.costPrice) * item.quantity;
       
       subtotal += itemTotal;
       totalTax += itemTax;
-      item.total = itemTotal + itemTax;
+      grossProfit += itemProfit;
+
+      // Create processed item with cost price and profit
+      processedItems.push({
+        product: item.product,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        costPrice: product.costPrice,
+        discount: item.discount || 0,
+        tax: itemTax,
+        total: itemTotal + itemTax,
+        profit: itemProfit
+      });
     }
 
     const total = subtotal + totalTax;
@@ -180,18 +199,25 @@ router.post('/', [
       });
     }
 
-    // Create sale
+    // Calculate net profit (gross profit minus any applicable expenses/costs)
+    const netProfit = grossProfit; // For now, same as gross profit
+
+    // Create sale with calculated profit values
     const sale = await Sale.create({
       customer,
-      items,
+      items: processedItems,
       subtotal,
       tax: totalTax,
       total,
+      grossProfit,
+      netProfit,
       paymentMethod,
       amountPaid,
       change,
       notes,
-      cashier: req.user.id
+      cashier: req.user.id,
+      paymentStatus: 'paid',
+      status: 'completed'
     });
 
     // Update product stock
@@ -213,14 +239,21 @@ router.post('/', [
       .populate('cashier', 'firstName lastName')
       .populate('items.product', 'name sku price');
 
+    console.log('🎉 Sales API - Sale created successfully:', populatedSale.invoiceNumber);
     res.status(201).json({
       success: true,
       data: populatedSale
     });
   } catch (error) {
+    console.error('❌ Sales creation error:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      requestBody: req.body
+    });
     res.status(500).json({
       success: false,
-      error: 'Server error'
+      error: `Server error: ${error.message}`
     });
   }
 });
